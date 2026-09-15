@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="theme-color" content="#f2f3f5" />
+  <title>晓梦生小手机</title>
+  <link rel="stylesheet" href="styles.css">
+  <link rel="manifest" href="manifest.json">
+</head>
+<body>
+  <div class="phone" role="application">
+    <header class="phone-header"><span id="headerTitle">晓梦生小手机</span></header>
+    <main class="phone-body">
+      <section id="homePage" class="page active" role="tabpanel" aria-labelledby="homePage">
+        <section class="card">
+          <h3>界面与字体</h3>
+          <label>自定义字体 URL
+            <input id="fontUrl" type="url" placeholder="https://.../font.woff2">
+          </label>
+          <label>字体大小
+            <input id="fontSize" type="range" min="12" max="22" value="14">
+          </label>
+          <button id="applyFont">应用字体</button>
+        </section>
+
+        <section class="card">
+          <h3>API 与模型</h3>
+          <label>API 地址
+            <input id="apiUrl" type="text" placeholder="https://api.example.com">
+          </label>
+          <label>API 密钥
+            <input id="apiKey" type="text" placeholder="请输入密钥">
+          </label>
+          <label>模型名称
+            <input id="modelName" type="text" placeholder="gpt-xx-mini">
+          </label>
+          <button id="saveApi">保存 API 设置</button>
+        </section>
+
+        <section class="card">
+          <h3>壁纸与桌面</h3>
+          <label>上传壁纸
+            <input id="wallpaperFile" type="file" accept="image/*">
+          </label>
+          <div class="preview" id="wallpaperPreview">未设置壁纸</div>
+          <button id="clearWallpaper">清除壁纸</button>
+        </section>
+
+        <section class="card">
+          <h3>运行与通知</h3>
+          <label><input id="keepAlive" type="checkbox"> 后台保活</label>
+          <label><input id="enableNotify" type="checkbox"> 前端通知</label>
+          <label><input id="cloudSync" type="checkbox"> 云端同步</label>
+        </section>
+
+        <section class="card">
+          <h3>备份与导入导出</h3>
+          <button id="exportBackup">导出备份</button>
+          <label>导入备份
+            <input id="importBackup" type="file" accept="application/json">
+          </label>
+        </section>
+
+        <section class="card small">
+          <h3>桌面美化 导入/导出</h3>
+          <label>导入桌面文件（HTML）
+            <input id="importDesktop" type="file" accept="text/html">
+          </label>
+          <button id="exportDesktop">导出当前桌面</button>
+        </section>
+
+        <section class="card">
+          <h3>AI 生成（图片 / 语音）</h3>
+          <label>输入提示
+            <input id="aiPrompt" type="text" placeholder="例如：晴天的日系插画，柔和灰色调">
+          </label>
+          <div class="row">
+            <button id="genImage">生成图片（使用 API）</button>
+            <button id="genAudio">生成语音（使用 API）</button>
+          </div>
+          <div id="aiResults" class="preview">暂无生成内容</div>
+        </section>
+      </section>
+
+      <section id="chatPage" class="page" role="tabpanel" aria-labelledby="chatPage">
+        <section class="chat-card">
+          <div class="chat-header">
+            <div class="avatar avatar-char">C</div>
+            <div>
+              <div class="chat-name">Char</div>
+              <div class="chat-status" id="chatStatusText">在线</div>
+            </div>
+            <div class="chat-tools">
+              <button id="recallLast">撤回</button>
+              <button id="modifyLast">修改</button>
+            </div>
+          </div>
+
+          <div class="chat-actions row">
+            <button id="sendTransfer">转账</button>
+            <button id="sendRedPacket">红包</button>
+            <button id="voiceCall">语音</button>
+            <button id="videoCall">视频</button>
+            <button id="sendLocation">位置</button>
+            <button id="aiRegenerate">重回</button>
+          </div>
+
+          <div id="messageList" class="message-list"></div>
+
+          <div class="chat-composer">
+            <input id="chatInput" type="text" placeholder="发消息">
+            <label class="mini-upload">
+              <input id="chatImageInput" type="file" accept="image/*">
+              图片
+            </label>
+            <label class="mini-upload">
+              <input id="chatAudioInput" type="file" accept="audio/*">
+              语音
+            </label>
+            <button id="sendMessage">发送</button>
+          </div>
+        </section>
+
+        <section class="panel-card">
+          <h3>角色与世界书</h3>
+          <div class="field-grid">
+            <label>角色备注
+              <input id="roleNote" type="text" value="温柔、观察细节、喜欢小惊喜">
+            </label>
+            <label>角色世界书
+              <select id="worldbookSelect">
+                <option value="主线世界">主线世界</option>
+                <option value="灰色回忆">灰色回忆</option>
+                <option value="酒馆分支">酒馆分支</option>
+              </select>
+            </label>
+          </div>
+          <div class="toggle-row">
+            <label><input id="readNoReply" type="checkbox" checked> 已读不回</label>
+            <label><input id="timeSense" type="checkbox" checked> 时间感知</label>
+          </div>
+          <div class="summary-box" id="worldbookPreview">主线世界：两人相识于雨天，日常碎片中逐渐信任彼此。</div>
+          <button id="summarizeRole">生成角色向量总结</button>
+        </section>
+
+        <section class="panel-card">
+          <h3>表情包与图床</h3>
+          <label>图床链接
+            <input id="stickerLink" type="url" placeholder="https://example.com/表情.png">
+          </label>
+          <label>说明文字
+            <input id="stickerNote" type="text" placeholder="例如：此链接为眨眼表情，中文说明为眨眼">
+          </label>
+          <button id="addSticker">导入表情包</button>
+          <div id="stickerList" class="sticker-list"></div>
+        </section>
+
+        <section class="panel-card">
+          <h3>朋友圈</h3>
+          <div class="moment-input">
+            <textarea id="momentText" rows="2" placeholder="这一刻想分享什么"></textarea>
+            <label class="mini-upload">
+              <input id="momentImageInput" type="file" accept="image/*">
+              上传图片
+            </label>
+          </div>
+          <button id="postMoment">发表朋友圈</button>
+          <div id="momentList" class="moment-list"></div>
+        </section>
+      </section>
+
+      <section id="tavernPage" class="page" role="tabpanel" aria-labelledby="tavernPage">
+        <section class="panel-card" id="offlinePage">
+          <h3>线下模式 · 酒馆模拟</h3>
+          <div class="field-grid">
+            <label>挂载世界书
+              <select id="tavernWorldbookSelect"></select>
+            </label>
+            <label>选择文风
+              <select id="tavernStyleSelect"></select>
+            </label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button id="manageStylesBtn">管理文风</button>
+            <button id="refreshWorldbooksBtn">刷新世界书</button>
+          </div>
+
+          <div class="tavern-char-select" style="margin-top:12px">
+            <h4 style="margin:0 0 8px 0;font-size:13px">在场角色</h4>
+            <div id="tavernCharacterList" class="character-grid"></div>
+            <button id="addTavernCharBtn" class="mini-upload" style="margin-top:8px">+ 添加角色卡</button>
+          </div>
+
+          <div class="tavern-chat" style="margin-top:16px;display:none" id="tavernChatArea">
+            <div class="chat-header" style="background:#f4f5f7;padding:10px 12px;border-radius:12px 12px 0 0;border:1px solid #eceff1;border-bottom:none">
+              <div class="avatar" id="tavernCharAvatar">C</div>
+              <div>
+                <div class="chat-name" id="tavernCharName">酒保</div>
+                <div class="chat-status" id="tavernCharStatus">灯光微黄，等你开口</div>
+              </div>
+            </div>
+            <div id="tavernMessageList" class="message-list" style="height:260px;background:#fafbfc"></div>
+            <div class="tavern-composer" style="display:flex;gap:8px;padding:10px;border-top:1px solid #eceff1;background:#f9fafb;border-radius:0 0 12px 12px;border:1px solid #eceff1;border-top:none">
+              <input id="tavernInput" type="text" placeholder="在此输入动作或对话..." style="flex:1;padding:8px 10px;border-radius:8px;border:1px solid #e8eaed">
+              <button id="tavernSendBtn">发送</button>
+              <button id="tavernStylePreviewBtn">文风预览</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel-card" id="styleManagePage" style="display:none">
+          <h3>文风管理</h3>
+          <div class="style-editor">
+            <div class="field-grid">
+              <label>文风名称
+                <input id="styleName" type="text" placeholder="例如：日系轻小说、克苏鲁调查、赛博朋克黑话">
+              </label>
+              <label>适用场景
+                <input id="styleScene" type="text" placeholder="例如：酒馆闲聊、悬疑推理、日常温馨">
+              </label>
+            </div>
+            <label style="margin-top:8px">文风内容（提示词/风格描述）
+              <textarea id="styleContent" rows="6" placeholder="请粘贴或输入文风描述，例如：\n—— 使用第二人称，细腻描写环境光影与微表情\n—— 对话简短、留白多，心理活动用括号标注\n—— 避免网络流行语，保持克制灰调"></textarea>
+            </label>
+            <div class="row" style="margin-top:8px">
+              <button id="saveStyleBtn">保存文风</button>
+              <button id="cancelStyleBtn" style="background:#edf1f3">取消</button>
+            </div>
+            <div id="styleList" class="style-list" style="margin-top:12px"></div>
+          </div>
+        </section>
+      </section>
+
+      <section id="settingsPage" class="page" role="tabpanel" aria-labelledby="settingsPage">
+        <section class="panel-card">
+          <h3>角色设定</h3>
+          <div class="field-grid">
+            <label>用户名
+              <input id="userName" type="text" placeholder="你的名字/昵称">
+            </label>
+            <label>用户头像
+              <input id="userAvatar" type="file" accept="image/*">
+            </label>
+          </div>
+          <div class="field-grid">
+            <label>角色名
+              <input id="charName" type="text" placeholder="角色名字">
+            </label>
+            <label>角色头像
+              <input id="charAvatar" type="file" accept="image/*">
+            </label>
+          </div>
+          <label>用户人设
+            <textarea id="userPersona" rows="3" placeholder="你的性格、口吻、背景设定..."></textarea>
+          </label>
+          <label>角色人设
+            <textarea id="charPersona" rows="3" placeholder="角色性格、口吻、背景设定..."></textarea>
+          </label>
+          <div class="row">
+            <button id="saveIdentity">保存身份设定</button>
+            <button id="exportIdentity">导出 JSON</button>
+          </div>
+          <label>导入身份设定
+            <input id="importIdentity" type="file" accept="application/json">
+          </label>
+        </section>
+
+        <section class="panel-card">
+          <h3>世界书管理</h3>
+          <div class="field-grid">
+            <label>条目名称
+              <input id="wbName" type="text" placeholder="例如：主角背景、酒馆设定">
+            </label>
+            <label>触发关键词（逗号分隔）
+              <input id="wbKeywords" type="text" placeholder="酒馆,老酒保,灯光">
+            </label>
+          </div>
+          <label>条目内容
+            <textarea id="wbContent" rows="4" placeholder="详细设定内容..."></textarea>
+          </label>
+          <div class="row">
+            <label>权重
+              <input id="wbWeight" type="range" min="0" max="10" value="5">
+            </label>
+            <label>触发模式
+              <select id="wbTrigger">
+                <option value="keyword">关键词触发</option>
+                <option value="always">始终生效</option>
+                <option value="manual">手动调用</option>
+              </select>
+            </label>
+          </div>
+          <div class="row">
+            <button id="addWorldbookEntry">添加条目</button>
+            <button id="importWorldbook">导入文件</button>
+          </div>
+          <label>导入世界书文件
+            <input id="wbFileInput" type="file" accept=".txt,.json,.docx">
+          </label>
+          <button id="exportWorldbook">导出世界书</button>
+          <div id="worldbookEntries" style="margin-top:12px;display:grid;gap:8px"></div>
+        </section>
+      </section>
+
+    </main>
+    <footer class="phone-footer">晓梦生小手机 · 原型</footer>
+    <nav class="tab-bar" role="tablist" aria-label="主功能切换">
+      <button class="tab-btn active" role="tab" aria-selected="true" data-target="#homePage" aria-controls="homePage">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span>桌面</span>
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-target="#chatPage" aria-controls="chatPage">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H6l-2 2V4h16v12z"/></svg>
+        <span>微信</span>
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-target="#tavernPage" aria-controls="tavernPage">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+        <span>酒馆</span>
+      </button>
+      <button class="tab-btn" role="tab" aria-selected="false" data-target="#settingsPage" aria-controls="settingsPage">
+        <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        <span>设置</span>
+      </button>
+    </nav>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

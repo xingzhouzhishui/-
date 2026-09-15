@@ -1,0 +1,16 @@
+{
+  "name": "晓梦生小手机",
+  "short_name": "晓梦生",
+  "description": "亚萌灰风格手机模拟 Web App",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#f2f3f5",
+  "theme_color": "#f2f3f5",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23f2f3f5' width='100' height='100' rx='20'/><text x='50' y='62' font-size='48' text-anchor='middle' fill='%23202124'>📱</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
