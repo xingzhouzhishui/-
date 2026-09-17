@@ -5,256 +5,217 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#f2f3f5" />
+  <meta name="theme-color" content="#1b1d21" />
   <title>晓梦生小手机</title>
   <link rel="stylesheet" href="styles.css">
   <link rel="manifest" href="manifest.json">
 </head>
 <body>
-  <div class="phone" role="application">
+  <div class="phone" id="phone" role="application">
     <!-- 状态栏 -->
     <div class="status-bar" id="statusBar">
       <span class="time" id="statusTime">09:41</span>
       <div class="status-icons">
         <svg class="signal" viewBox="0 0 17 11"><path fill="currentColor" d="M0 11h3V4H0v7zm4 0h3V7H4v4zm4 0h3V2H8v9zm4 0h3v-7h-3v7z"/></svg>
-        <svg class="wifi" viewBox="0 0 15 11"><path fill="currentColor" d="M13.5 7.3c-1.7 0-3.3.8-4.4 2.1C7.8 8.2 6.2 7.3 4.5 7.3c-1.8 0-3.4 1.3-3.9 3.2L0 11l4.5-1.5c.5.3 1.1.5 1.6.5s1.1-.2 1.6-.5L15 11l-1.5-3.7zM7.5 9.5c-.8 0-1.5-.7-1.5-1.5S6.7 6.5 7.5 6.5s1.5.7 1.5 1.5S8.3 9.5 7.5 9.5z"/></svg>
+        <svg class="wifi" viewBox="0 0 15 11"><path fill="currentColor" d="M13.5 7.3c-1.7 0-3.3.8-4.4 2.1C7.8 8.2 6.2 7.3 4.5 7.3c-1.8 0-3.4 1.3-3.9 3.2L0 11l4.5-1.5c.5.3 1.1.5 1.6.5s1.1-.2 1.6-.5L15 11l-1.5-3.7z"/></svg>
         <svg class="battery" viewBox="0 0 24 12"><path fill="currentColor" d="M18 3H6c-.6 0-1 .4-1 1v6c0 .6.4 1 1 1h12c.6 0 1-.4 1-1V4c0-.6-.4-1-1-1zm0 8H6V4h12v6z"/><path fill="currentColor" d="M21 5v2c0 .6-.4 1-1 1h-1c-.6 0-1-.4-1-1V5c0-.6.4-1 1-1h1c.6 0 1 .4 1 1z"/></svg>
       </div>
     </div>
 
-    <!-- 主屏幕容器 -->
+    <!-- 主屏幕 -->
     <div class="home-screen" id="homeScreen">
-      <!-- 页面指示器 -->
-      <div class="page-indicator" id="pageIndicator"></div>
-
-      <!-- 应用网格区域 -->
+      <div class="wallpaper-veil"></div>
+      <div class="page-indicator" id="pageIndicator"><span class="dot active"></span><span class="dot"></span></div>
       <div class="app-pages" id="appPages">
-        <!-- 第1页应用 -->
-        <div class="app-page" data-page="0">
-          <div class="app-grid" id="appGridPage0"></div>
-        </div>
-        <!-- 第2页应用 -->
-        <div class="app-page" data-page="1">
-          <div class="app-grid" id="appGridPage1"></div>
-        </div>
+        <div class="app-page" data-page="0"><div class="app-grid" id="appGridPage0"></div></div>
+        <div class="app-page" data-page="1"><div class="app-grid" id="appGridPage1"></div></div>
       </div>
-
-      <!-- 底部 Dock -->
-      <div class="dock" id="dock">
-        <div class="dock-apps" id="dockApps"></div>
-      </div>
+      <div class="dock"><div class="dock-bg"><div class="dock-apps" id="dockApps"></div></div></div>
     </div>
 
-    <!-- 应用容器（全屏应用运行区域） -->
+    <!-- 应用容器 -->
     <div class="app-container" id="appContainer"></div>
 
-    <!-- 手势提示条 -->
+    <!-- 手势条 -->
     <div class="home-indicator" id="homeIndicator"></div>
   </div>
 
-  <!-- 应用模板：微信 -->
+  <!-- ============ 微信 ============ -->
   <template id="tpl-wechat">
     <div class="app-screen" data-app="wechat">
       <header class="app-header">
-        <h1>微信</h1>
-        <button class="header-btn" data-action="search"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <div class="header-center">
+          <div class="wechat-tabs" id="wechatTabs">
+            <button class="tab active" data-tab="chats">微信</button>
+            <button class="tab" data-tab="contacts">通讯录</button>
+            <button class="tab" data-tab="discover">发现</button>
+            <button class="tab" data-tab="me">我</button>
+          </div>
+        </div>
+        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
       </header>
-      <div class="app-body">
-        <div class="wechat-tabs">
-          <button class="tab active" data-tab="chats">微信</button>
-          <button class="tab" data-tab="contacts">通讯录</button>
-          <button class="tab" data-tab="discover">发现</button>
-          <button class="tab" data-tab="me">我</button>
-        </div>
-        <div class="tab-panels">
-          <div class="tab-panel active" id="chatsPanel">
-            <div class="chat-list" id="chatList"></div>
-          </div>
-          <div class="tab-panel" id="contactsPanel">
-            <div class="contact-list" id="contactList"></div>
-          </div>
-          <div class="tab-panel" id="discoverPanel">
-            <div class="discover-grid" id="discoverGrid"></div>
-          </div>
-          <div class="tab-panel" id="mePanel">
-            <div class="me-profile" id="meProfile"></div>
-          </div>
-        </div>
+      <div class="tab-panels">
+        <div class="tab-panel active" id="panel-chats"></div>
+        <div class="tab-panel" id="panel-contacts"></div>
+        <div class="tab-panel" id="panel-discover"></div>
+        <div class="tab-panel" id="panel-me"></div>
       </div>
     </div>
   </template>
 
-  <!-- 应用模板：聊天详情 -->
+  <!-- 聊天详情 -->
   <template id="tpl-chat-detail">
-    <div class="app-screen chat-detail" data-app="chat-detail">
+    <div class="app-screen chat-detail-screen" data-app="chat-detail">
       <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 id="chatDetailName">联系人</h1>
-        <button class="header-btn" data-action="more"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
-      </header>
-      <div class="app-body chat-body">
-        <div class="message-list" id="detailMessageList"></div>
-      </div>
-      <footer class="chat-composer">
-        <button class="composer-btn" data-action="face"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13c0-.55-.45-1-1-1H5c-.55 0-1 .45-1 1v2c0 .55.45 1 1 1h6c.55 0 1-.45 1-1V7zm0 4c0-.55-.45-1-1-1H5c-.55 0-1 .45-1 1v2c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2zm0 4c0-.55-.45-1-1-1H5c-.55 0-1 .45-1 1v2c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2z"/></svg></button>
-        <div class="composer-input-wrap">
-          <input type="text" id="detailChatInput" placeholder="发送消息" />
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <div class="header-title-wrap" id="chatDetailTitle">
+          <div class="chat-name" id="chatDetailName">联系人</div>
+          <div class="chat-sub" id="chatDetailSub">在线</div>
         </div>
-        <button class="composer-btn" data-action="plus"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-        <button class="composer-btn" data-action="voice"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
+        <button class="header-btn" data-action="more"><svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
+      </header>
+      <div class="chat-mind" id="chatMindBar"></div>
+      <div class="message-list" id="detailMessageList"></div>
+      <div class="chat-action-panel" id="chatActionPanel" style="display:none"></div>
+      <footer class="chat-composer">
+        <button class="composer-btn" data-action="voice"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
+        <div class="composer-input-wrap"><input type="text" id="detailChatInput" placeholder="发送消息" /></div>
+        <button class="composer-btn" data-action="emoji"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg></button>
+        <button class="composer-btn" data-action="plus"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
       </footer>
     </div>
   </template>
 
-  <!-- 应用模板：设置 -->
+  <!-- 设置 -->
   <template id="tpl-settings">
     <div class="app-screen" data-app="settings">
       <header class="app-header">
-        <h1>设置</h1>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">设置</h1>
+        <span class="header-spacer"></span>
       </header>
-      <div class="app-body">
-        <div class="settings-sections" id="settingsSections"></div>
-      </div>
+      <div class="app-body" id="settingsBody"></div>
     </div>
   </template>
 
-  <!-- 应用模板：酒馆 -->
-  <template id="tpl-tavern">
-    <div class="app-screen" data-app="tavern">
-      <header class="app-header">
-        <h1>酒馆</h1>
-        <button class="header-btn" data-action="style-manage"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/></svg></button>
-      </header>
-      <div class="app-body">
-        <div class="tavern-setup" id="tavernSetup">
-          <div class="setup-section">
-            <h3>世界书</h3>
-            <select id="tavernWorldbookSelect"></select>
-          </div>
-          <div class="setup-section">
-            <h3>文风</h3>
-            <select id="tavernStyleSelect"></select>
-          </div>
-          <div class="setup-section">
-            <h3>在场角色</h3>
-            <div class="character-grid" id="tavernCharGrid"></div>
-            <button class="btn-secondary" id="addTavernCharBtn">+ 添加角色卡</button>
-          </div>
-        </div>
-        <div class="tavern-chat" id="tavernChatArea" style="display:none">
-          <div class="chat-header-inline">
-            <div class="avatar" id="tavernCharAvatar">酒</div>
-            <div>
-              <div id="tavernCharName">老酒保</div>
-              <div class="chat-status" id="tavernCharStatus">灯光微黄，等你开口</div>
-            </div>
-          </div>
-          <div class="message-list" id="tavernMessageList"></div>
-          <div class="tavern-composer">
-            <input id="tavernInput" type="text" placeholder="在此输入动作或对话..." />
-            <button id="tavernSendBtn">发送</button>
-          </div>
-        </div>
-      </div>
-    </div>
-  </template>
-
-  <!-- 应用模板：角色设定 -->
+  <!-- 角色设定 -->
   <template id="tpl-character">
     <div class="app-screen" data-app="character">
       <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1>角色设定</h1>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">角色设定</h1>
+        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
       </header>
-      <div class="app-body">
-        <div class="settings-sections" id="characterSections"></div>
-      </div>
+      <div class="app-body" id="characterBody"></div>
     </div>
   </template>
 
-  <!-- 应用模板：世界书 -->
+  <!-- 世界书 -->
   <template id="tpl-worldbook">
     <div class="app-screen" data-app="worldbook">
       <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1>世界书</h1>
-        <button class="header-btn" data-action="import"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">世界书</h1>
+        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
       </header>
-      <div class="app-body">
-        <div class="wb-editor" id="wbEditor"></div>
-        <div class="wb-list" id="wbList"></div>
-      </div>
+      <div class="app-body" id="worldbookBody"></div>
     </div>
   </template>
 
-  <!-- 应用模板：文风管理 -->
-  <template id="tpl-style-manage">
-    <div class="app-screen" data-app="style-manage">
+  <!-- 文风管理 -->
+  <template id="tpl-style">
+    <div class="app-screen" data-app="style">
       <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1>文风管理</h1>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">文风</h1>
+        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
       </header>
-      <div class="app-body">
-        <div class="style-editor" id="styleEditor"></div>
-        <div class="style-list" id="styleList"></div>
-      </div>
+      <div class="app-body" id="styleBody"></div>
     </div>
   </template>
 
-  <!-- 应用模板：音乐 -->
+  <!-- 网易云音乐 -->
   <template id="tpl-music">
     <div class="app-screen" data-app="music">
       <header class="app-header">
-        <h1>音乐</h1>
-        <button class="header-btn" data-action="search"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">网易云音乐</h1>
+        <button class="header-btn" data-action="search"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
       </header>
-      <div class="app-body">
-        <div class="music-player" id="musicPlayer"></div>
-      </div>
+      <div class="app-body flush" id="musicBody"></div>
     </div>
   </template>
 
-  <!-- 应用模板：情侣空间 -->
+  <!-- 情侣空间 -->
   <template id="tpl-couple">
     <div class="app-screen" data-app="couple">
       <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1>我们的空间</h1>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">我们的空间</h1>
+        <span class="header-spacer"></span>
       </header>
-      <div class="app-body">
-        <div class="couple-content" id="coupleContent"></div>
-      </div>
+      <div class="app-body" id="coupleBody"></div>
     </div>
   </template>
 
-  <!-- 应用模板：商城 -->
+  <!-- 查手机 -->
+  <template id="tpl-checkphone">
+    <div class="app-screen" data-app="checkphone">
+      <header class="app-header">
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">查看手机</h1>
+        <span class="header-spacer"></span>
+      </header>
+      <div class="app-body" id="checkphoneBody"></div>
+    </div>
+  </template>
+
+  <!-- 商城 -->
   <template id="tpl-shop">
     <div class="app-screen" data-app="shop">
       <header class="app-header">
-        <h1>商城</h1>
-        <button class="header-btn" data-action="import"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">商城</h1>
+        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
       </header>
-      <div class="app-body">
-        <div class="shop-content" id="shopContent"></div>
-      </div>
+      <div class="app-body" id="shopBody"></div>
     </div>
   </template>
 
-  <!-- 应用模板：论坛 -->
+  <!-- 酒馆（线下模式） -->
+  <template id="tpl-tavern">
+    <div class="app-screen" data-app="tavern">
+      <header class="app-header">
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">酒馆</h1>
+        <span class="header-spacer"></span>
+      </header>
+      <div class="app-body" id="tavernBody"></div>
+    </div>
+  </template>
+
+  <!-- 同人文 / 共读 -->
+  <template id="tpl-reading">
+    <div class="app-screen" data-app="reading">
+      <header class="app-header">
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">同人文与共读</h1>
+        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+      </header>
+      <div class="app-body" id="readingBody"></div>
+    </div>
+  </template>
+
+  <!-- 论坛（知乎风） -->
   <template id="tpl-forum">
     <div class="app-screen" data-app="forum">
       <header class="app-header">
-        <h1>论坛</h1>
-        <button class="header-btn" data-action="write"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+        <h1 class="header-title">论坛</h1>
+        <button class="header-btn" data-action="ask"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
       </header>
-      <div class="app-body">
-        <div class="forum-tabs">
-          <button class="tab active" data-tab="latest">最新</button>
-          <button class="tab" data-tab="hot">热门</button>
-          <button class="tab" data-tab="my">我的</button>
-        </div>
-        <div class="forum-list" id="forumList"></div>
-      </div>
+      <div class="app-body" id="forumBody"></div>
     </div>
   </template>
 
