@@ -408,6 +408,77 @@
         </div>
       </transition>
 
+      <!-- ============ 微信 App ============ -->
+      <transition name="fade">
+        <div v-if="openApp==='wechat'" class="app-full" style="background:#edf0f5">
+          <!-- 头部 -->
+          <div style="display:flex;align-items:center;gap:4px;padding:14px 10px 10px;background:rgba(46,46,48,0.92);backdrop-filter:blur(20px);color:#fff;flex-shrink:0;min-height:52px">
+            <button style="width:34px;height:34px;border-radius:50%;background:none;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" @click="openApp=null"><svg width="22" height="22" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <div style="flex:1;text-align:center;min-width:0;cursor:pointer" @click="showMaskMenu=!showMaskMenu">
+              <div style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ activeAiName }}</div>
+              <div style="font-size:11px;color:rgba(255,255,255,0.65);margin-top:1px">{{ activeMask ? '面具 · ' + activeMask.name : '点击选择面具' }} ▾</div>
+            </div>
+            <button style="width:34px;height:34px;border-radius:50%;background:none;border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" @click="showAiManage=true"><svg width="22" height="22" viewBox="0 0 24 24" style="fill:currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
+          </div>
+
+          <!-- 面具下拉 -->
+          <div v-if="showMaskMenu" style="position:absolute;top:52px;left:0;right:0;z-index:1600;background:#fff;color:#1c1c1e;border-radius:0 0 16px 16px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:8px 0;max-height:60vh;overflow-y:auto">
+            <div v-for="m in data.userMasks" :key="m.id" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer" @click="setActiveMask(m.id)">
+              <img v-if="m.avatar" :src="m.avatar" style="width:36px;height:36px;border-radius:9px;object-fit:cover">
+              <div v-else style="width:36px;height:36px;border-radius:9px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;color:#8e8e93;font-weight:600">{{ m.name[0] }}</div>
+              <span style="flex:1;font-size:15px">{{ m.name }}</span>
+              <span v-if="m.id===data.activeMaskId" style="color:#34c759;font-weight:600">✓</span>
+            </div>
+            <div v-if="!data.userMasks.length" style="padding:12px 16px;color:#8e8e93;font-size:13px">暂无面具，点下方新建</div>
+            <button style="width:100%;padding:11px;background:none;border:none;color:#007aff;font-size:14px;cursor:pointer" @click="maskForm(null)">＋ 新建面具</button>
+          </div>
+
+          <!-- 聊天流 -->
+          <div ref="chatScrollRef" style="flex:1;overflow-y:auto;background:#edf0f5;padding:14px 12px;-webkit-overflow-scrolling:touch">
+            <div v-if="!data.wechatMessages.length" style="text-align:center;color:#b2b6bd;padding-top:70px;font-size:13px">开始和 ta 聊天吧</div>
+            <div v-for="m in data.wechatMessages" :key="m.id" style="display:flex;margin-bottom:12px" :style="{justifyContent: m.role==='user' ? 'flex-end' : 'flex-start'}">
+              <template v-if="m.role==='ai'">
+                <img v-if="activeAiAvatar" :src="activeAiAvatar" style="width:38px;height:38px;border-radius:6px;object-fit:cover;margin-right:8px;flex-shrink:0">
+                <div v-else style="width:38px;height:38px;border-radius:6px;margin-right:8px;background:#c7c7cc;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;flex-shrink:0">{{ (activeAiName||'AI')[0] }}</div>
+              </template>
+              <div style="max-width:72%">
+                <div v-if="m.recalled" style="background:transparent;color:#b2b6bd;font-size:12px;padding:6px 4px">对方撤回了一条消息 <span style="color:#576b95;text-decoration:underline;cursor:pointer" @click="m.recalled=false">[点击查看]</span></div>
+                <div v-else :style="{ background: m.role==='user' ? '#95ec69' : '#ffffff', borderRadius:'8px', padding:'10px 13px', fontSize:'15px', lineHeight:'1.5', whiteSpace:'pre-wrap', wordBreak:'break-word', boxShadow:'0 1px 2px rgba(0,0,0,0.05)' }" @contextmenu.prevent="msgMenu(m)" @touchstart="msgPressStart(m,$event)" @touchend="msgPressEnd" @touchmove="msgPressEnd">{{ m.text }}</div>
+                <div v-if="m.role==='ai' && m.thought && showThoughts" style="margin-top:5px;background:rgba(255,255,255,0.6);border-left:3px solid #a78bfa;border-radius:4px;padding:6px 10px;font-size:12px;color:#8a8a93;white-space:pre-wrap">{{ m.thought }}</div>
+              </div>
+              <template v-if="m.role==='user'">
+                <img v-if="activeMask && activeMask.avatar" :src="activeMask.avatar" style="width:38px;height:38px;border-radius:6px;object-fit:cover;margin-left:8px;flex-shrink:0">
+                <div v-else style="width:38px;height:38px;border-radius:6px;margin-left:8px;background:#95ec69;display:flex;align-items:center;justify-content:center;color:#333;font-weight:600;flex-shrink:0">{{ activeMask ? activeMask.name[0] : '我' }}</div>
+              </template>
+            </div>
+            <div v-if="sending" style="display:flex;align-items:center;margin-bottom:12px">
+              <div style="width:38px;height:38px;border-radius:6px;background:#c7c7cc;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600">…</div>
+              <div style="background:#fff;border-radius:8px;padding:9px 14px;margin-left:8px"><span style="color:#b2b6bd;font-size:14px">正在输入…</span></div>
+            </div>
+          </div>
+
+          <!-- 输入栏 -->
+          <div style="display:flex;align-items:flex-end;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#f7f7f7;border-top:1px solid #e5e5e5;flex-shrink:0">
+            <button style="width:34px;height:34px;border-radius:50%;background:none;border:none;color:#333;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center" @click="showToast('按住说话（演示）')"><svg width="24" height="24" viewBox="0 0 24 24" style="fill:currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
+            <div style="flex:1;background:#fff;border-radius:8px;display:flex;align-items:center">
+              <textarea v-model="chatInput" rows="1" placeholder="发消息" @keydown.enter.exact.prevent="sendMessage" style="flex:1;border:none;outline:none;padding:8px 12px;resize:none;font-size:15px;background:transparent;color:#1c1c1e;line-height:1.4;max-height:90px"></textarea>
+            </div>
+            <button style="flex-shrink:0;background:#95ec69;border:none;border-radius:6px;padding:7px 12px;font-size:14px;font-weight:600;color:#333;cursor:pointer" @click="sendMessage">发送</button>
+            <button style="width:34px;height:34px;border-radius:50%;background:none;border:none;color:#333;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center" @click="showDrawer=!showDrawer"><svg width="24" height="24" viewBox="0 0 24 24" style="fill:currentColor" :style="{transform: showDrawer ? 'rotate(45deg)' : ''}"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
+          </div>
+
+          <!-- ＋ 抽屉面板 -->
+          <div v-if="showDrawer" style="background:#f7f7f7;border-top:1px solid #e5e5e5;padding:12px 8px;max-height:260px;overflow-y:auto;flex-shrink:0">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px 4px">
+              <button v-for="a in drawerItems" :key="a.label" style="background:none;border:none;cursor:pointer;padding:0" @click="drawerAction(a.action)">
+                <div :style="{ background: a.bg, width:'52px', height:'52px', borderRadius:'12px', margin:'0 auto 6px', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:'19px', fontWeight:'600' }">{{ a.icon }}</div>
+                <span style="font-size:11px;color:#333">{{ a.label }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- 图标编辑弹窗 -->
       <transition name="fade">
         <div v-if="iconEditing" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
@@ -493,6 +564,72 @@
         </div>
       </transition>
 
+      <!-- AI 角色管理弹窗 -->
+      <transition name="fade">
+        <div v-if="showAiManage" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:18px;padding:20px;width:90%;max-width:360px;color:#1c1c1e;max-height:82vh;overflow-y:auto">
+            <h3 style="margin:0 0 14px;font-size:17px">AI 角色管理</h3>
+            <div v-if="data.aiPersonas.length" style="margin-bottom:12px">
+              <div v-for="p in data.aiPersonas" :key="p.id" style="display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #f0f0f3;border-radius:12px;margin-bottom:8px">
+                <img v-if="p.avatar" :src="p.avatar" style="width:40px;height:40px;border-radius:10px;object-fit:cover">
+                <div v-else style="width:40px;height:40px;border-radius:10px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;color:#8e8e93;font-weight:600">{{ p.name[0] }}</div>
+                <div style="flex:1;min-width:0"><div style="font-size:15px;font-weight:600">{{ p.name }}</div><div style="font-size:11px;color:#8e8e93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.mainPersona || '未填写人设' }}</div></div>
+                <button style="background:none;border:none;color:#007aff;font-size:12px;cursor:pointer;padding:2px 4px" @click="setActiveAi(p.id)">{{ p.id===data.activeAiId ? '当前' : '设为' }}</button>
+                <button style="background:none;border:none;color:#007aff;font-size:12px;cursor:pointer;padding:2px 4px" @click="aiForm(p.id)">编辑</button>
+                <button style="background:none;border:none;color:#ff3b30;font-size:12px;cursor:pointer;padding:2px 4px" @click="aiDel(p.id)">删</button>
+              </div>
+            </div>
+            <div v-else style="padding:14px;color:#8e8e93;font-size:13px;text-align:center">暂无 AI 角色，点下方新建</div>
+            <button v-if="activeAi && (activeAi.altName || activeAi.altPersona)" class="btn btn-ghost" style="width:100%;margin-bottom:8px" @click="toggleAlt">{{ data.activeAiIsAlt ? '切回主号' : '切换为小号' }}</button>
+            <button class="btn btn-block" @click="aiForm(null)">＋ 新建 AI 角色</button>
+            <button class="btn btn-ghost" style="width:100%;margin-top:8px" @click="showAiManage=false">关闭</button>
+          </div>
+        </div>
+      </transition>
+
+      <!-- AI 角色表单弹窗 -->
+      <transition name="fade">
+        <div v-if="showAiForm" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:18px;padding:20px;width:90%;max-width:360px;color:#1c1c1e;max-height:85vh;overflow-y:auto">
+            <h3 style="margin:0 0 14px;font-size:17px">{{ aiFormData.id ? '编辑 AI 角色' : '新建 AI 角色' }}</h3>
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">名字</label><input type="text" v-model="aiFormData.name" placeholder="AI 角色名" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">头像 URL</label><input type="text" v-model="aiAvatarUrl" placeholder="https://.../avatar.png" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
+            <div style="margin-bottom:10px"><label style="display:block;padding:11px;border:1px dashed #c7c7cc;border-radius:10px;color:#007aff;font-size:13px;text-align:center;cursor:pointer">或上传头像<input type="file" accept="image/*" hidden @change="onAiAvatar"></label></div>
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">主设定（System Prompt）</label><textarea v-model="aiFormData.mainPersona" rows="3" placeholder="AI 的性格、口吻、背景..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;resize:vertical"></textarea></div>
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">小号名字（可选）</label><input type="text" v-model="aiFormData.altName" placeholder="小号昵称" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
+            <div style="margin-bottom:16px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">小号设定（可选，独立说话风格）</label><textarea v-model="aiFormData.altPersona" rows="3" placeholder="小号的人设..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;resize:vertical"></textarea></div>
+            <div style="display:flex;gap:10px"><button class="btn btn-ghost" style="flex:1" @click="showAiForm=false">取消</button><button class="btn" style="flex:1" @click="saveAi">保存</button></div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 面具表单弹窗 -->
+      <transition name="fade">
+        <div v-if="showMaskForm" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:18px;padding:20px;width:88%;max-width:340px;color:#1c1c1e">
+            <h3 style="margin:0 0 14px;font-size:17px">{{ maskFormData.id ? '编辑面具' : '新建面具' }}</h3>
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">面具名字</label><input type="text" v-model="maskFormData.name" placeholder="面具名字" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
+            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">头像 URL</label><input type="text" v-model="maskAvatarUrl" placeholder="https://.../avatar.png" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
+            <div style="margin-bottom:10px"><label style="display:block;padding:11px;border:1px dashed #c7c7cc;border-radius:10px;color:#007aff;font-size:13px;text-align:center;cursor:pointer">或上传头像<input type="file" accept="image/*" hidden @change="onMaskAvatar"></label></div>
+            <div style="margin-bottom:16px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">面具专属人设（System Prompt 附加段）</label><textarea v-model="maskFormData.persona" rows="3" placeholder="此面具的性格/口吻..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;resize:vertical"></textarea></div>
+            <div style="display:flex;gap:10px"><button class="btn btn-ghost" style="flex:1" @click="showMaskForm=false">取消</button><button class="btn" style="flex:1" @click="saveMask">保存</button></div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 消息操作面板（长按弹出） -->
+      <transition name="fade">
+        <div v-if="showMsgMenu" class="app-full" style="background:rgba(0,0,0,.4);z-index:1600;align-items:flex-end" @click="showMsgMenu=false">
+          <div style="background:#fff;border-radius:16px 16px 0 0;padding:12px 8px calc(16px + env(safe-area-inset-bottom));width:100%;color:#1c1c1e" @click.stop>
+            <div style="text-align:center;color:#8e8e93;font-size:12px;padding:6px 0 10px">{{ msgMenuMsg && msgMenuMsg.role==='ai' ? 'AI 消息' : '我的消息' }}</div>
+            <button v-if="msgMenuMsg && msgMenuMsg.role==='ai'" class="btn" style="width:100%;margin-bottom:8px" @click="actRegenerate(msgMenuMsg);showMsgMenu=false">重回（重新生成）</button>
+            <button v-if="msgMenuMsg && msgMenuMsg.role==='user'" class="btn" style="width:100%;margin-bottom:8px" @click="actEdit(msgMenuMsg);showMsgMenu=false">修改</button>
+            <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" @click="actRecall(msgMenuMsg);showMsgMenu=false">撤回</button>
+            <button class="btn btn-danger" style="width:100%" @click="actErase(msgMenuMsg);showMsgMenu=false">删除记忆（彻底抹除）</button>
+          </div>
+        </div>
+      </transition>
+
       <div class="toast" :class="{show: toast}">{{ toast }}</div>
     </div>
   </div>
@@ -555,11 +692,12 @@ const fonts = [
 
 const LS_KEY = 'ios_simulator_data'
 const DEFAULT_DATA = {
-  _v: 2, wallpaperId:'w1', customWallpaper:'', font:'system', fontUrl:'', iconSize:60, blur:0, saturation:1.6, darkIcons:false, tintIcons:false,
+  _v: 3, wallpaperId:'w1', customWallpaper:'', font:'system', fontUrl:'', iconSize:60, blur:0, saturation:1.6, darkIcons:false, tintIcons:false,
   icons:{}, apiPresets:[], activePresetId:'',
   minimax:{ groupId:'', apiKey:'', voiceId:'male-qn-qingse', speed:1.0, pitch:0 },
   imageGen:{ apiUrl:'', promptTemplate:'', resolution:'1024x1024' },
-  keepAlive:false, worldbooks:[]
+  keepAlive:false, worldbooks:[],
+  userMasks:[], activeMaskId:'', aiPersonas:[], activeAiId:'', activeAiIsAlt:false, wechatMessages:[]
 }
 
 createApp({
@@ -593,6 +731,9 @@ createApp({
     }
     // 保证每个板块字段完整
     data.worldbooks.forEach(c => { if(!Array.isArray(c.entries)) c.entries = []; if(c.collapsed === undefined) c.collapsed = false })
+    if(!Array.isArray(data.userMasks)) data.userMasks = []
+    if(!Array.isArray(data.aiPersonas)) data.aiPersonas = []
+    if(!Array.isArray(data.wechatMessages)) data.wechatMessages = []
 
     let toastTimer = null
     const showToast = (m) => { toast.value = m; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 1600) }
@@ -656,6 +797,7 @@ createApp({
     const tapApp = (a) => {
       if(a.id === 'settings'){ openApp.value = 'settings'; settingsRoute.value = 'main' }
       else if(a.id === 'worldbook'){ openApp.value = 'worldbook' }
+      else if(a.id === 'wechat'){ openApp.value = 'wechat' }
       else { showToast('「' + a.name + '」组件接口已预留') }
     }
 
@@ -807,8 +949,148 @@ createApp({
 
     const onScroll = () => { if(pagesRef.value) page.value = Math.round(pagesRef.value.scrollLeft / pagesRef.value.clientWidth) }
 
+    // ============ 微信 ============
+    const showDrawer = ref(false), showMaskMenu = ref(false), showAiManage = ref(false), showAiForm = ref(false), showMaskForm = ref(false), showMsgMenu = ref(false), showThoughts = ref(false)
+    const chatInput = ref(''), sending = ref(false), msgMenuMsg = ref(null)
+    const chatScrollRef = ref(null)
+    const maskAvatarUrl = ref(''), aiAvatarUrl = ref(''), maskAvatarData = ref(''), aiAvatarData = ref('')
+    const maskFormData = reactive({ id:null, name:'', persona:'' })
+    const aiFormData = reactive({ id:null, name:'', mainPersona:'', altName:'', altPersona:'' })
+
+    const drawerItems = [
+      { label:'照片', icon:'图', action:'photo', bg:'linear-gradient(160deg,#5e6a76,#39414a)' },
+      { label:'拍摄', icon:'拍', action:'camera', bg:'linear-gradient(160deg,#4a4a4f,#232327)' },
+      { label:'语音通话', icon:'话', action:'voicecall', bg:'linear-gradient(160deg,#8b95a3,#4d565f)' },
+      { label:'视频通话', icon:'视', action:'videocall', bg:'linear-gradient(160deg,#9aa1ab,#5b626b)' },
+      { label:'位置', icon:'位', action:'location', bg:'linear-gradient(160deg,#7fae8f,#4d7058)' },
+      { label:'红包', icon:'包', action:'redpacket', bg:'linear-gradient(160deg,#d44a3f,#7c2a22)' },
+      { label:'转账', icon:'转', action:'transfer', bg:'linear-gradient(160deg,#e8a23d,#8a5a12)' },
+      { label:'文件', icon:'文', action:'file', bg:'linear-gradient(160deg,#87a6c4,#527086)' },
+      { label:'重回', icon:'重', action:'regenerate', bg:'linear-gradient(160deg,#5e5ce6,#4846cc)' },
+      { label:'心声', icon:'心', action:'thoughts', bg:'linear-gradient(160deg,#a79fbc,#655f79)' },
+      { label:'修改', icon:'改', action:'edit', bg:'linear-gradient(160deg,#b0a08a,#6b5f4c)' },
+      { label:'撤回', icon:'撤', action:'recall', bg:'linear-gradient(160deg,#9a9aa2,#5a5a62)' },
+      { label:'删除记忆', icon:'删', action:'erase', bg:'linear-gradient(160deg,#c9a0a0,#8a5f5f)' },
+    ]
+
+    const activeMask = computed(() => data.userMasks.find(m => m.id === data.activeMaskId) || null)
+    const activeAi = computed(() => data.aiPersonas.find(p => p.id === data.activeAiId) || null)
+    const activeAiName = computed(() => { const ai = activeAi.value; if(!ai) return 'AI 角色'; return (data.activeAiIsAlt && ai.altName) ? ai.altName : ai.name })
+    const activeAiAvatar = computed(() => { const ai = activeAi.value; if(!ai) return null; return (data.activeAiIsAlt && ai.altAvatar) ? ai.altAvatar : ai.avatar })
+
+    const scrollChat = () => { const el = chatScrollRef.value; if(el) setTimeout(() => el.scrollTop = el.scrollHeight, 30) }
+
+    // 面具
+    const maskForm = (id) => { const m = id ? data.userMasks.find(x => x.id === id) : null; maskFormData.id = m ? m.id : null; maskFormData.name = m ? m.name : ''; maskFormData.persona = m ? m.persona : ''; maskAvatarUrl.value = ''; maskAvatarData.value = m ? m.avatar : ''; showMaskMenu.value = false; showMaskForm.value = true }
+    const onMaskAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { maskAvatarData.value = r.result }; r.readAsDataURL(f); e.target.value = '' }
+    const saveMask = () => {
+      const name = maskFormData.name.trim(); if(!name){ showToast('请输入面具名'); return }
+      const avatar = maskAvatarUrl.value.trim() || maskAvatarData.value
+      if(maskFormData.id){ const m = data.userMasks.find(x => x.id === maskFormData.id); Object.assign(m, { name, avatar, persona: maskFormData.persona }) }
+      else { const nm = { id:'mask'+Date.now(), name, avatar, persona: maskFormData.persona }; data.userMasks.push(nm); data.activeMaskId = nm.id }
+      showMaskForm.value = false; showToast('面具已保存')
+    }
+    const setActiveMask = (id) => { data.activeMaskId = id; showMaskMenu.value = false }
+
+    // AI 角色
+    const aiForm = (id) => { const p = id ? data.aiPersonas.find(x => x.id === id) : null; aiFormData.id = p ? p.id : null; aiFormData.name = p ? p.name : ''; aiFormData.mainPersona = p ? p.mainPersona : ''; aiFormData.altName = p ? p.altName : ''; aiFormData.altPersona = p ? p.altPersona : ''; aiAvatarUrl.value = ''; aiAvatarData.value = p ? p.avatar : ''; showAiManage.value = false; showAiForm.value = true }
+    const onAiAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { aiAvatarData.value = r.result }; r.readAsDataURL(f); e.target.value = '' }
+    const saveAi = () => {
+      const name = aiFormData.name.trim(); if(!name){ showToast('请输入角色名'); return }
+      const avatar = aiAvatarUrl.value.trim() || aiAvatarData.value
+      if(aiFormData.id){ const p = data.aiPersonas.find(x => x.id === aiFormData.id); Object.assign(p, { name, avatar, mainPersona: aiFormData.mainPersona, altName: aiFormData.altName, altPersona: aiFormData.altPersona }) }
+      else { const np = { id:'ai'+Date.now(), name, avatar, mainPersona: aiFormData.mainPersona, altName: aiFormData.altName, altAvatar: avatar, altPersona: aiFormData.altPersona }; data.aiPersonas.push(np); data.activeAiId = np.id }
+      showAiForm.value = false; showAiManage.value = true; showToast('AI 角色已保存')
+    }
+    const setActiveAi = (id) => { data.activeAiId = id; data.activeAiIsAlt = false; showAiManage.value = false }
+    const aiDel = (id) => { data.aiPersonas = data.aiPersonas.filter(x => x.id !== id); if(data.activeAiId === id){ data.activeAiId = data.aiPersonas.length ? data.aiPersonas[0].id : '' } showToast('已删除') }
+    const toggleAlt = () => { data.activeAiIsAlt = !data.activeAiIsAlt; showAiManage.value = false; showToast(data.activeAiIsAlt ? '已切换为小号' : '已切回主号') }
+
+    // 世界书上下文 + 系统提示
+    const buildWorldbookCtx = () => {
+      const recent = data.wechatMessages.slice(-10).map(m => m.text).join(' ')
+      const parts = []
+      data.worldbooks.forEach(cat => cat.entries.forEach(e => {
+        if(e.enabled === false) return
+        const hit = e.constant || (e.key && e.key.split(',').some(k => k.trim() && recent.includes(k.trim())))
+        if(hit) parts.push(e.content)
+      }))
+      return parts.join('\n')
+    }
+    const buildSystemPrompt = () => {
+      const parts = []
+      const ai = activeAi.value
+      if(ai){
+        if(data.activeAiIsAlt && (ai.altName || ai.altPersona)) parts.push('你正在扮演「' + (ai.altName || ai.name) + '」的小号。人设：' + (ai.altPersona || ai.mainPersona))
+        else parts.push('你正在扮演「' + ai.name + '」。人设：' + (ai.mainPersona || ''))
+      }
+      const mask = activeMask.value
+      if(mask && mask.persona) parts.push('【用户面具「' + mask.name + '」】' + mask.persona)
+      const wb = buildWorldbookCtx()
+      if(wb) parts.push('【世界观/世界书（命中条目）】\n' + wb)
+      parts.push('请在回复末尾用一行 [Thought: ...] 标注你此刻的内心独白（100字以内）。')
+      return parts.join('\n\n')
+    }
+    const parseThought = (raw) => { const m = raw.match(/\[Thought:\s*([\s\S]*?)\]/i); const thought = m ? m[1].trim().slice(0,120) : ''; const text = raw.replace(/\[Thought:\s*[\s\S]*?\]/i, '').trim(); return { text: text || raw, thought } }
+    const simulateReply = (q) => {
+      const ai = activeAi.value, name = activeAiName.value
+      const reps = ['嗯，我在听。', '这件事我记下了。', '继续说吧。', '我明白你的意思了。']
+      return { text: reps[Math.floor(Math.random()*reps.length)], thought: name + ' 在心里想了想，没有立刻说出口。' }
+    }
+    const aiGenerate = async (hist) => {
+      const preset = data.apiPresets.find(p => p.id === data.activePresetId)
+      if(!preset || !preset.baseUrl) return simulateReply(hist[hist.length-1]?.content || '')
+      let url = preset.baseUrl.trim().replace(/\/+$/,''); if(!/\/chat\/completions$/.test(url)) url += '/chat/completions'
+      try{
+        const resp = await fetch(url, { method:'POST', headers:{ 'Content-Type':'application/json', ...(preset.apiKey?{'Authorization':'Bearer '+preset.apiKey}:{}) }, body: JSON.stringify({ model: preset.model || 'gpt-4o', messages: [{ role:'system', content: buildSystemPrompt() }, ...hist] }) })
+        if(!resp.ok) throw new Error(String(resp.status))
+        const j = await resp.json(); const raw = (j.choices && j.choices[0] && j.choices[0].message && j.choices[0].message.content) || ''
+        return parseThought(raw)
+      }catch(err){ return simulateReply(hist[hist.length-1]?.content || '') }
+    }
+    const sendMessage = async () => {
+      const text = chatInput.value.trim(); if(!text || sending.value) return
+      chatInput.value = ''
+      data.wechatMessages.push({ id:'m'+Date.now(), role:'user', text, thought:'', time:Date.now(), recalled:false })
+      scrollChat(); sending.value = true
+      const hist = data.wechatMessages.filter(m => !m.recalled && m.text).map(m => ({ role: m.role==='user' ? 'user' : 'assistant', content: m.text }))
+      const res = await aiGenerate(hist)
+      data.wechatMessages.push({ id:'m'+Date.now(), role:'ai', text: res.text, thought: res.thought, time:Date.now(), recalled:false })
+      sending.value = false; scrollChat()
+    }
+    // 消息动作
+    const lastAiIndex = () => { for(let i=data.wechatMessages.length-1;i>=0;i--){ if(data.wechatMessages[i].role==='ai' && !data.wechatMessages[i].recalled) return i } return -1 }
+    const actRegenerate = async (m) => { const idx = data.wechatMessages.findIndex(x => x.id === m.id); if(idx < 0) return; sending.value = true; const hist = data.wechatMessages.slice(0, idx).filter(x => !x.recalled && x.text).map(x => ({ role: x.role==='user'?'user':'assistant', content: x.text })); const res = await aiGenerate(hist); data.wechatMessages[idx].text = res.text; data.wechatMessages[idx].thought = res.thought; data.wechatMessages[idx].recalled = false; sending.value = false; scrollChat() }
+    const actEdit = (m) => { const nt = prompt('修改这条消息：', m.text || ''); if(nt === null || !nt.trim()) return; m.text = nt.trim(); showToast('已修改（可长按重回重新生成）') }
+    const actRecall = (m) => { m.recalled = true; showToast('已撤回') }
+    const actErase = (m) => { const i = data.wechatMessages.findIndex(x => x.id === m.id); if(i >= 0) data.wechatMessages.splice(i, 1); showToast('已彻底删除该记忆') }
+    const regenerateLast = async () => { const i = lastAiIndex(); if(i < 0){ showToast('没有可重回的消息'); return } actRegenerate(data.wechatMessages[i]) }
+    // 长按
+    let mpTimer = null
+    const msgPressStart = (m, e) => { const y = e.touches ? e.touches[0].clientY : e.clientY; mpTimer = setTimeout(() => { msgMenuMsg.value = m; showMsgMenu.value = true }, 500) }
+    const msgPressEnd = () => { clearTimeout(mpTimer) }
+    const msgMenu = (m) => { msgMenuMsg.value = m; showMsgMenu.value = true }
+
+    // 抽屉动作
+    const drawerAction = (act) => {
+      showDrawer.value = false
+      if(act === 'photo'){ showToast('模拟相册 / 生图（接入 imageGen API）') }
+      else if(act === 'camera'){ showToast('模拟拍摄') }
+      else if(act === 'voicecall'){ showToast('语音通话（接入 Minimax TTS）') }
+      else if(act === 'videocall'){ showToast('视频通话（模拟）') }
+      else if(act === 'location'){ const m = { id:'m'+Date.now(), role:'user', text:'[位置] 会展中心 · 2号门', thought:'', time:Date.now(), recalled:false }; data.wechatMessages.push(m); scrollChat() }
+      else if(act === 'redpacket'){ const amt = prompt('红包金额：', '66'); if(amt !== null){ data.wechatMessages.push({ id:'m'+Date.now(), role:'user', text:'[红包] ' + amt + ' 元', thought:'', time:Date.now(), recalled:false }); scrollChat() } }
+      else if(act === 'transfer'){ const amt = prompt('转账金额：', '88.88'); if(amt !== null){ data.wechatMessages.push({ id:'m'+Date.now(), role:'user', text:'[转账] ¥' + Number(amt||0).toFixed(2), thought:'', time:Date.now(), recalled:false }); scrollChat() } }
+      else if(act === 'file'){ showToast('文件（模拟）') }
+      else if(act === 'regenerate'){ regenerateLast() }
+      else if(act === 'thoughts'){ showThoughts.value = !showThoughts.value; showToast(showThoughts.value ? '心声已开启' : '心声已隐藏') }
+      else if(act === 'edit'){ const i = [...data.wechatMessages].map(m=>m.role).lastIndexOf('user'); if(i < 0){ showToast('没有可修改的消息'); return } actEdit(data.wechatMessages[i]) }
+      else if(act === 'recall'){ const last = data.wechatMessages[data.wechatMessages.length-1]; if(!last){ showToast('没有消息'); return } actRecall(last) }
+      else if(act === 'erase'){ if(!data.wechatMessages.length){ showToast('没有消息'); return } if(confirm('删除全部对话记忆？')){ data.wechatMessages = [] } }
+    }
+
     const statusColor = computed(() => (openApp.value==='settings'||openApp.value==='worldbook') ? '#1c1c1e' : '#fff')
-    const homeIndicatorColor = computed(() => (openApp.value==='settings'||openApp.value==='worldbook') ? '#1c1c1e' : '#fff')
+    const homeIndicatorColor = computed(() => (openApp.value==='settings'||openApp.value==='worldbook'||openApp.value==='wechat') ? '#1c1c1e' : '#fff')
 
     return { now, battery, charging, openApp, settingsRoute, page, toast, data, glyphs, wallpapers, fonts, appSlots, fontUrl, iconUrl,
       iconEditing, presetEditing, wbEditing, showPresetForm, showWbForm, presetForm, wbFormData, keepAliveTick,
@@ -818,6 +1100,11 @@ createApp({
       tapApp, longPressStart, longPressEnd, editIcon, onIconFile, saveIcon, clearIcon, onWallUpload, pickFont, applyFontUrl, onFontFile,
       settingsBack, editPreset, savePreset, closePresetForm, activatePreset,
       catForm, saveCat, catDel, catToggle, wbForm, saveWb, closeWbForm, wbDel, toggleEntry, importSillyTavern, importCSV,
+      showDrawer, showMaskMenu, showAiManage, showAiForm, showMaskForm, showMsgMenu, showThoughts,
+      chatInput, sending, msgMenuMsg, chatScrollRef, maskAvatarUrl, aiAvatarUrl, maskFormData, aiFormData, drawerItems,
+      activeMask, activeAi, activeAiName, activeAiAvatar,
+      maskForm, onMaskAvatar, saveMask, setActiveMask, aiForm, onAiAvatar, saveAi, setActiveAi, aiDel, toggleAlt,
+      sendMessage, msgMenu, msgPressStart, msgPressEnd, actRegenerate, actEdit, actRecall, actErase, regenerateLast, drawerAction,
       toggleKeepAlive, exportBackup, importBackup, onScroll, pagesRef }
   }
 }).mount('#app')
