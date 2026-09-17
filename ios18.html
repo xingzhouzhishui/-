@@ -355,25 +355,53 @@
           <div class="af-header">
             <button class="af-back" @click="openApp=null"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
             <span class="af-title">世界书</span>
-            <span class="af-right"><button @click="wbForm(null)">添加</button></span>
+            <span class="af-right" style="display:flex;gap:2px">
+              <button @click="showImportMenu=true" style="padding:0 4px">导入</button>
+              <button @click="catForm(null)" style="padding:0 4px">＋</button>
+            </span>
           </div>
           <div class="af-body">
-            <div v-if="!data.worldbooks.length" style="text-align:center;color:#8e8e93;padding:60px 20px;font-size:14px">
-              暂无世界书条目<br><br>世界书用于存储世界观设定，<br>当对话命中触发词时自动插入 System Prompt。
+            <!-- 词条搜索框 -->
+            <div style="background:#fff;border-radius:12px;display:flex;align-items:center;gap:8px;padding:9px 14px;margin-bottom:12px">
+              <svg width="16" height="16" viewBox="0 0 24 24" style="fill:none;stroke:#8e8e93;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input v-model="wbSearch" placeholder="搜索词条（触发词 / 内容）" style="flex:1;border:none;outline:none;font-size:14px;background:transparent;color:#1c1c1e">
+              <span v-if="wbSearch" @click="wbSearch=''" style="color:#8e8e93;cursor:pointer;font-size:18px;line-height:1">×</span>
             </div>
-            <div v-for="w in data.worldbooks" :key="w.id" class="wb-entry">
-              <div class="wb-top">
-                <span class="wb-name">{{ w.name || '未命名条目' }}</span>
-                <span v-if="w.constant" class="wb-badge constant">常驻</span>
-                <span v-else class="wb-badge">触发</span>
+
+            <div v-if="!filteredCategories.length" style="text-align:center;color:#8e8e93;padding:50px 20px;font-size:14px">
+              暂无世界书板块<br><br>点右上角「＋」新建板块，<br>或「导入」解析酒馆 JSON / CSV。
+            </div>
+
+            <!-- 大板块 Accordion -->
+            <div v-for="cat in filteredCategories" :key="cat.id" style="background:#fff;border-radius:14px;margin-bottom:10px;overflow:hidden">
+              <div style="display:flex;align-items:center;gap:6px;padding:13px 14px;cursor:pointer" @click="catToggle(cat.id)">
+                <span style="color:#8e8e93;font-size:13px;width:14px;display:inline-block;transition:transform .2s" :style="{transform: cat.collapsed ? '' : 'rotate(90deg)'}">›</span>
+                <span style="flex:1;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ cat.name }}</span>
+                <span :style="{color: cat.entries.length>=100 ? '#ff3b30' : '#8e8e93', fontSize:'12px', flexShrink:'0'}">{{ cat.entries.length }}/100</span>
+                <button @click.stop="catForm(cat.id)" style="background:none;border:none;color:#007aff;font-size:13px;cursor:pointer;padding:2px 4px">重命名</button>
+                <button @click.stop="catDel(cat.id)" style="background:none;border:none;color:#ff3b30;font-size:13px;cursor:pointer;padding:2px 4px">删除</button>
               </div>
-              <div v-if="w.key" class="wb-key">{{ w.key }}</div>
-              <div class="wb-content">{{ w.content || '（无内容）' }}</div>
-              <div class="wb-foot">
-                <span class="wb-depth">深度 {{ w.depth }}</span>
-                <span style="flex:1"></span>
-                <button class="btn btn-ghost" style="padding:7px 14px;font-size:13px" @click="wbForm(w.id)">编辑</button>
-                <button class="btn btn-danger" style="padding:7px 14px;font-size:13px" @click="wbDel(w.id)">删除</button>
+
+              <div v-show="!cat.collapsed">
+                <div v-if="!cat.entries.length" style="padding:14px 16px;color:#8e8e93;font-size:13px">此板块暂无词条</div>
+                <div v-for="e in cat.entries" :key="e.id" class="wb-entry" style="margin:0 10px 10px;border:1px solid #f0f0f3;opacity:1" :style="{opacity: e.enabled===false ? 0.5 : 1}">
+                  <div class="wb-top">
+                    <label class="switch" style="width:42px;height:25px"><input type="checkbox" :checked="e.enabled !== false" @change="toggleEntry(cat.id, e.id)"><span class="sl"></span></label>
+                    <span class="wb-name" style="font-size:14px">{{ e.key ? e.key.split(',')[0].trim() : '（无触发词）' }}</span>
+                    <span v-if="e.constant" class="wb-badge constant">常驻</span>
+                    <span v-else class="wb-badge">触发</span>
+                  </div>
+                  <div v-if="e.key" class="wb-key">{{ e.key }}</div>
+                  <div class="wb-content">{{ e.content || '（无内容）' }}</div>
+                  <div class="wb-foot">
+                    <span class="wb-depth">深度 {{ e.depth }}</span>
+                    <span style="flex:1"></span>
+                    <button class="btn btn-ghost" style="padding:6px 12px;font-size:12px" @click="wbForm(cat.id, e.id)">编辑</button>
+                    <button class="btn btn-danger" style="padding:6px 12px;font-size:12px" @click="wbDel(cat.id, e.id)">删除</button>
+                  </div>
+                </div>
+                <button v-if="cat.entries.length < 100" style="display:block;width:calc(100% - 20px);margin:0 10px 12px;padding:10px;background:#f2f2f7;border:none;border-radius:10px;color:#007aff;font-size:14px;cursor:pointer" @click="wbForm(cat.id, null)">＋ 新增词条</button>
+                <div v-else style="padding:10px 16px;color:#ff3b30;font-size:12px;text-align:center">该板块已达 100 条上限</div>
               </div>
             </div>
           </div>
@@ -421,20 +449,46 @@
         </div>
       </transition>
 
-      <!-- 世界书编辑弹窗 -->
+      <!-- 世界书词条编辑弹窗 -->
       <transition name="fade">
         <div v-if="showWbForm" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
           <div style="background:#fff;border-radius:18px;padding:20px;width:90%;max-width:360px;color:#1c1c1e;max-height:85vh;overflow-y:auto">
-            <h3 style="margin:0 0 16px;font-size:17px">{{ wbEditing ? '编辑条目' : '新建世界书条目' }}</h3>
-            <div style="margin-bottom:12px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">名称（可选）</label><input type="text" v-model="wbFormData.name" placeholder="例如：主角背景" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
+            <h3 style="margin:0 0 16px;font-size:17px">{{ wbEditing ? '编辑词条' : '新建词条' }}</h3>
             <div style="margin-bottom:12px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">Key（触发词，逗号分隔）</label><input type="text" v-model="wbFormData.key" placeholder="雨天, 咖啡店, 初遇" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
             <div style="margin-bottom:12px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">Content（插入文本）</label><textarea v-model="wbFormData.content" rows="5" placeholder="要插入到 System Prompt 的世界观/设定内容..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;resize:vertical"></textarea></div>
-            <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><label style="font-size:13px;color:#8e8e93">是否常驻（Constant）</label><label class="switch"><input type="checkbox" v-model="wbFormData.constant"><span class="sl"></span></label></div>
+            <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><label style="font-size:13px;color:#8e8e93;flex:1">是否常驻（Constant）</label><label class="switch"><input type="checkbox" v-model="wbFormData.constant"><span class="sl"></span></label></div>
+            <div style="margin-bottom:12px;display:flex;align-items:center;gap:10px"><label style="font-size:13px;color:#8e8e93;flex:1">激活（Enabled）</label><label class="switch"><input type="checkbox" v-model="wbFormData.enabled"><span class="sl"></span></label></div>
             <div style="margin-bottom:16px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">检索深度 Depth（{{ wbFormData.depth }}）</label><input type="range" min="0" max="10" v-model.number="wbFormData.depth"></div>
             <div style="display:flex;gap:10px">
               <button class="btn btn-ghost" style="flex:1" @click="closeWbForm">取消</button>
               <button class="btn" style="flex:1" @click="saveWb">保存</button>
             </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 板块新建/重命名弹窗 -->
+      <transition name="fade">
+        <div v-if="showCatForm" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:18px;padding:20px;width:86%;max-width:320px;color:#1c1c1e">
+            <h3 style="margin:0 0 16px;font-size:17px">{{ catFormData.id ? '重命名板块' : '新建大板块' }}</h3>
+            <div style="margin-bottom:16px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">板块名称</label><input type="text" v-model="catFormData.name" placeholder="例如：魔法帝国" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-ghost" style="flex:1" @click="showCatForm=false">取消</button>
+              <button class="btn" style="flex:1" @click="saveCat">保存</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 导入菜单弹窗 -->
+      <transition name="fade">
+        <div v-if="showImportMenu" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:18px;padding:20px;width:88%;max-width:350px;color:#1c1c1e">
+            <h3 style="margin:0 0 16px;font-size:17px">导入 / 兼容</h3>
+            <div style="margin-bottom:12px"><div style="font-size:13px;color:#8e8e93;margin-bottom:6px">SillyTavern（酒馆）JSON</div><label style="display:block;padding:13px;border:1px dashed #c7c7cc;border-radius:10px;color:#007aff;text-align:center;font-size:14px;cursor:pointer">选择 .json 文件<input type="file" accept=".json" hidden @change="importSillyTavern"></label></div>
+            <div style="margin-bottom:16px"><div style="font-size:13px;color:#8e8e93;margin-bottom:6px">CSV（触发词, 内容, 是否常驻, 深度）</div><label style="display:block;padding:13px;border:1px dashed #c7c7cc;border-radius:10px;color:#007aff;text-align:center;font-size:14px;cursor:pointer">选择 .csv 文件<input type="file" accept=".csv,.txt" hidden @change="importCSV"></label></div>
+            <button class="btn btn-ghost" style="width:100%" @click="showImportMenu=false">关闭</button>
           </div>
         </div>
       </transition>
@@ -517,7 +571,10 @@ createApp({
     const iconEditing = ref(null), presetEditing = ref(undefined), wbEditing = ref(undefined)
     const showPresetForm = ref(false), showWbForm = ref(false)
     const presetForm = reactive({ id:null, name:'', apiKey:'', baseUrl:'', model:'' })
-    const wbFormData = reactive({ id:null, name:'', key:'', content:'', constant:false, depth:3 })
+    const wbFormData = reactive({ catId:null, id:null, key:'', content:'', constant:false, depth:3, enabled:true })
+    const wbSearch = ref('')
+    const showCatForm = ref(false), showImportMenu = ref(false)
+    const catFormData = reactive({ id:null, name:'' })
     const keepAliveTick = ref(0)
 
     let saved = null; try{ saved = JSON.parse(localStorage.getItem(LS_KEY)) }catch(e){ saved = null }
@@ -529,6 +586,13 @@ createApp({
     data.imageGen = Object.assign({ ...DEFAULT_DATA.imageGen }, data.imageGen)
     if(!Array.isArray(data.apiPresets)) data.apiPresets = []
     if(!Array.isArray(data.worldbooks)) data.worldbooks = []
+    // 迁移：旧版平铺条目 → 包裹进「默认板块」板块
+    if(data.worldbooks.length && !Array.isArray(data.worldbooks[0].entries)){
+      const old = data.worldbooks
+      data.worldbooks = [{ id:'cat_default', name:'默认板块', collapsed:false, entries: old.map(e => ({ id:e.id, key:e.key||'', content:e.content||'', constant:!!e.constant, depth:(e.depth ?? 3), enabled:true })) }]
+    }
+    // 保证每个板块字段完整
+    data.worldbooks.forEach(c => { if(!Array.isArray(c.entries)) c.entries = []; if(c.collapsed === undefined) c.collapsed = false })
 
     let toastTimer = null
     const showToast = (m) => { toast.value = m; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 1600) }
@@ -612,16 +676,109 @@ createApp({
     // 切换激活
     const activatePreset = (id) => { data.activePresetId = id }
 
-    // 世界书
-    const wbForm = (id) => { const w = id ? data.worldbooks.find(x => x.id === id) : null; wbFormData.id = w ? w.id : null; wbFormData.name = w ? w.name : ''; wbFormData.key = w ? (w.key||'') : ''; wbFormData.content = w ? (w.content||'') : ''; wbFormData.constant = w ? !!w.constant : false; wbFormData.depth = w ? (w.depth ?? 3) : 3; wbEditing.value = id; showWbForm.value = true }
+    // ============ 世界书（大板块 + 词条） ============
+    const filteredCategories = computed(() => {
+      const q = wbSearch.value.trim().toLowerCase()
+      if(!q) return data.worldbooks
+      return data.worldbooks.map(cat => ({
+        ...cat,
+        entries: cat.entries.filter(e => (e.key||'').toLowerCase().includes(q) || (e.content||'').toLowerCase().includes(q))
+      })).filter(cat => cat.name.toLowerCase().includes(q) || cat.entries.length)
+    })
+
+    // 板块
+    const catForm = (id) => { const c = id ? data.worldbooks.find(x => x.id === id) : null; catFormData.id = c ? c.id : null; catFormData.name = c ? c.name : ''; showCatForm.value = true }
+    const saveCat = () => {
+      const name = catFormData.name.trim(); if(!name){ showToast('请输入板块名称'); return }
+      if(catFormData.id){ const c = data.worldbooks.find(x => x.id === catFormData.id); if(c) c.name = name }
+      else { data.worldbooks.push({ id:'cat'+Date.now(), name, collapsed:false, entries:[] }) }
+      showCatForm.value = false; showToast('板块已保存')
+    }
+    const catDel = (id) => { if(!confirm('删除该板块及其所有词条？')) return; data.worldbooks = data.worldbooks.filter(x => x.id !== id); showToast('已删除') }
+    const catToggle = (id) => { const c = data.worldbooks.find(x => x.id === id); if(c) c.collapsed = !c.collapsed }
+
+    // 词条
+    const wbForm = (catId, id) => {
+      const cat = data.worldbooks.find(x => x.id === catId)
+      const e = (id && cat) ? cat.entries.find(x => x.id === id) : null
+      wbFormData.catId = catId; wbFormData.id = e ? e.id : null
+      wbFormData.key = e ? (e.key||'') : ''; wbFormData.content = e ? (e.content||'') : ''
+      wbFormData.constant = e ? !!e.constant : false; wbFormData.depth = e ? (e.depth ?? 3) : 3; wbFormData.enabled = e ? (e.enabled !== false) : true
+      wbEditing.value = id || null; showWbForm.value = true
+    }
     const saveWb = () => {
       if(!wbFormData.content.trim()){ showToast('请输入 Content'); return }
-      if(wbFormData.id){ const w = data.worldbooks.find(x => x.id === wbFormData.id); Object.assign(w, JSON.parse(JSON.stringify(wbFormData))) }
-      else { data.worldbooks.unshift({ id:'wb'+Date.now(), name:wbFormData.name, key:wbFormData.key, content:wbFormData.content, constant:wbFormData.constant, depth:wbFormData.depth }) }
-      closeWbForm(); showToast('条目已保存')
+      const cat = data.worldbooks.find(x => x.id === wbFormData.catId)
+      if(!cat){ showToast('板块不存在'); return }
+      if(wbFormData.id){
+        const e = cat.entries.find(x => x.id === wbFormData.id)
+        if(e) Object.assign(e, { key:wbFormData.key, content:wbFormData.content, constant:wbFormData.constant, depth:wbFormData.depth, enabled:wbFormData.enabled })
+      } else {
+        if(cat.entries.length >= 100){ showToast('该板块已达 100 条上限'); return }
+        cat.entries.push({ id:'wb'+Date.now(), key:wbFormData.key, content:wbFormData.content, constant:wbFormData.constant, depth:wbFormData.depth, enabled:wbFormData.enabled })
+      }
+      closeWbForm(); showToast('词条已保存')
     }
     const closeWbForm = () => { showWbForm.value = false; wbEditing.value = undefined }
-    const wbDel = (id) => { data.worldbooks = data.worldbooks.filter(x => x.id !== id); showToast('已删除') }
+    const wbDel = (catId, id) => { const cat = data.worldbooks.find(x => x.id === catId); if(cat) cat.entries = cat.entries.filter(x => x.id !== id); showToast('已删除') }
+    const toggleEntry = (catId, id) => { const cat = data.worldbooks.find(x => x.id === catId); const e = cat && cat.entries.find(x => x.id === id); if(e) e.enabled = !e.enabled }
+
+    // CSV 解析（支持引号包裹）
+    const parseCSV = (text) => {
+      const rows = []; let row = [], field = '', inQuotes = false
+      for(let i=0;i<text.length;i++){
+        const c = text[i]
+        if(inQuotes){ if(c === '"'){ if(text[i+1] === '"'){ field += '"'; i++ } else { inQuotes = false } } else field += c }
+        else if(c === '"') inQuotes = true
+        else if(c === ','){ row.push(field); field = '' }
+        else if(c === '\n'){ row.push(field); rows.push(row); row = []; field = '' }
+        else if(c !== '\r') field += c
+      }
+      if(field.length || row.length){ row.push(field); rows.push(row) }
+      return rows.filter(r => r.some(x => x.trim() !== ''))
+    }
+    const importStamp = () => new Date().toISOString().slice(5,16).replace(/[T:]/g,'')
+
+    const importSillyTavern = (e) => {
+      const f = e.target.files[0]; if(!f) return
+      const r = new FileReader()
+      r.onload = () => {
+        try{
+          const json = JSON.parse(r.result)
+          const entries = json.entries || {}
+          const list = Object.values(entries).map(en => {
+            const keys = []
+            if(en.key) keys.push(...(Array.isArray(en.key) ? en.key : [en.key]))
+            if(en.keysecondary) keys.push(...(Array.isArray(en.keysecondary) ? en.keysecondary : [en.keysecondary]))
+            const io = en.insertion_order !== undefined ? en.insertion_order : 100
+            const depth = (io >= 0 && io <= 10) ? io : Math.max(0, Math.min(10, Math.round(io/100)))
+            return { id:'wb'+Date.now()+Math.random().toString(36).slice(2,6), key:keys.join(','), content:en.content||'', constant:!!en.constant, depth, enabled:true }
+          }).filter(x => x.content)
+          if(!list.length){ showToast('未解析到有效词条'); return }
+          data.worldbooks.push({ id:'cat'+Date.now(), name:'导入_' + importStamp(), collapsed:false, entries:list })
+          showImportMenu.value = false; showToast('已导入 ' + list.length + ' 条')
+        }catch(err){ showToast('JSON 解析失败') }
+      }
+      r.readAsText(f); e.target.value = ''
+    }
+    const importCSV = (e) => {
+      const f = e.target.files[0]; if(!f) return
+      const r = new FileReader()
+      r.onload = () => {
+        const list = parseCSV(r.result).filter(row => row.length >= 2 && (row[0]||'').trim()).map(row => ({
+          id:'wb'+Date.now()+Math.random().toString(36).slice(2,6),
+          key:(row[0]||'').trim(),
+          content:(row[1]||'').trim(),
+          constant:/^(是|1|true|yes|y)$/i.test((row[2]||'').trim()),
+          depth:Math.max(0, Math.min(10, parseInt(row[3]) || 3)),
+          enabled:true
+        }))
+        if(!list.length){ showToast('未解析到有效行'); return }
+        data.worldbooks.push({ id:'cat'+Date.now(), name:'导入_' + importStamp(), collapsed:false, entries:list })
+        showImportMenu.value = false; showToast('已导入 ' + list.length + ' 条')
+      }
+      r.readAsText(f); e.target.value = ''
+    }
 
     // 内存监控
     const memoryMB = ref(0)
@@ -655,10 +812,13 @@ createApp({
 
     return { now, battery, charging, openApp, settingsRoute, page, toast, data, glyphs, wallpapers, fonts, appSlots, fontUrl, iconUrl,
       iconEditing, presetEditing, wbEditing, showPresetForm, showWbForm, presetForm, wbFormData, keepAliveTick,
+      wbSearch, showCatForm, showImportMenu, catFormData, filteredCategories,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
       statusColor, homeIndicatorColor, memoryText, memoryPercent, activePresetName, settingsTitle,
       tapApp, longPressStart, longPressEnd, editIcon, onIconFile, saveIcon, clearIcon, onWallUpload, pickFont, applyFontUrl, onFontFile,
-      settingsBack, editPreset, savePreset, closePresetForm, activatePreset, wbForm, saveWb, closeWbForm, wbDel, toggleKeepAlive, exportBackup, importBackup, onScroll, pagesRef }
+      settingsBack, editPreset, savePreset, closePresetForm, activatePreset,
+      catForm, saveCat, catDel, catToggle, wbForm, saveWb, closeWbForm, wbDel, toggleEntry, importSillyTavern, importCSV,
+      toggleKeepAlive, exportBackup, importBackup, onScroll, pagesRef }
   }
 }).mount('#app')
 </script>
