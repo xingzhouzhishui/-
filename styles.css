@@ -1,88 +1,111 @@
 :root{
-  --bg:#15171b;
-  --card:#1e2126;
-  --card-2:#272b31;
-  --muted:#8b919b;
-  --muted-2:#5c636c;
-  --text:#eceef1;
-  --text-2:#b8bec6;
+  --bg:#16181c;
+  --card:#1f2227;
+  --card-2:#26292f;
+  --muted:#8a909a;
+  --muted-2:#5c626b;
+  --text:#e9ebee;
+  --text-2:#b6bcc4;
+  --accent:#8a929c;
   --hairline:rgba(255,255,255,0.07);
-  --hairline-2:rgba(255,255,255,0.13);
+  --hairline-2:rgba(255,255,255,0.12);
   --radius:16px;
   --radius-lg:22px;
   --safe-top:env(safe-area-inset-top,0px);
   --safe-bottom:env(safe-area-inset-bottom,0px);
-  --glass:rgba(24,26,31,0.72);
-  --glass-strong:rgba(24,26,31,0.9);
-  --wechat:#07c160;
-  --netease:#e03a2e;
-  --zhihu:#0f88eb;
+  --glass:rgba(28,30,35,0.62);
+  --glass-strong:rgba(28,30,35,0.82);
   font-family:-apple-system,'SF Pro Text','PingFang SC','HarmonyOS Sans SC','Microsoft YaHei',system-ui,sans-serif;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;margin:0;background:#0a0b0d;color:var(--text);overscroll-behavior:none;-webkit-font-smoothing:antialiased;-webkit-user-select:none;user-select:none}
+html,body{
+  height:100%;margin:0;background:#0a0b0d;color:var(--text);
+  overscroll-behavior:none;-webkit-font-smoothing:antialiased;
+  -webkit-user-select:none;user-select:none;
+}
 input,textarea{-webkit-user-select:text;user-select:text;color:var(--text)}
 img{display:block;max-width:100%}
-svg{fill:currentColor}
-button{font-family:inherit}
 
 /* ============ 手机外框 ============ */
-.phone{position:relative;width:100%;max-width:420px;height:100vh;height:100dvh;margin:0 auto;overflow:hidden;display:flex;flex-direction:column;background:var(--bg);color:var(--text);box-shadow:0 0 0 1px rgba(255,255,255,0.05),0 24px 80px rgba(0,0,0,0.6)}
+.phone{
+  position:relative;width:100%;max-width:420px;height:100vh;height:100dvh;margin:0 auto;
+  overflow:hidden;display:flex;flex-direction:column;
+  background:var(--bg);color:var(--text);
+  box-shadow:0 0 0 1px rgba(255,255,255,0.05),0 24px 80px rgba(0,0,0,0.6);
+}
 @supports (height:100dvh){.phone{height:100dvh}}
-@media (min-width:520px){.phone{height:min(92vh,880px);border-radius:38px;margin-top:4vh;border:10px solid #202226}}
+@media (min-width:520px){
+  .phone{height:min(92vh,880px);border-radius:38px;margin-top:4vh;border:10px solid #202226}
+}
 
 /* ============ 状态栏 ============ */
-.status-bar{display:flex;justify-content:space-between;align-items:center;padding:calc(var(--safe-top) + 8px) 22px 6px;font-size:14px;font-weight:600;color:var(--text);flex-shrink:0;z-index:300;position:relative}
-.status-icons{display:flex;align-items:center;gap:5px}
+.status-bar{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:calc(var(--safe-top) + 8px) 22px 6px;
+  font-size:14px;font-weight:600;color:var(--text);flex-shrink:0;z-index:60;position:relative;
+}
+.status-icons{display:flex;align-items:center;gap:5px;color:var(--text)}
 .signal{width:17px;height:11px}.wifi{width:15px;height:11px}.battery{width:22px;height:11px}
 
 /* ============ 主屏幕 ============ */
 .home-screen{flex:1;display:flex;flex-direction:column;position:relative;overflow:hidden}
-.wallpaper-veil{position:absolute;inset:0;z-index:0;background-image:url('wallpaper.jpg');background-size:cover;background-position:center;filter:saturate(0.8) contrast(1.05) brightness(0.9)}
-.wallpaper-veil::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(18,20,24,0.28),rgba(18,20,24,0.5) 42%,rgba(18,20,24,0.9))}
+.wallpaper-veil{
+  position:absolute;inset:0;z-index:0;
+  background-image:url('wallpaper.jpg');
+  background-size:cover;background-position:center;
+  filter:saturate(0.72) contrast(1.04);
+}
+.wallpaper-veil::after{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(20,22,26,0.30),rgba(20,22,26,0.55) 40%,rgba(20,22,26,0.86));
+}
 .page-indicator{display:flex;justify-content:center;gap:6px;padding:12px 0 4px;position:relative;z-index:2;flex-shrink:0}
-.page-indicator .dot{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.32);transition:all .25s}
-.page-indicator .dot.active{width:16px;background:rgba(255,255,255,0.88)}
+.page-indicator .dot{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.35);transition:all .25s}
+.page-indicator .dot.active{width:16px;background:rgba(255,255,255,0.9)}
 .app-pages{flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;position:relative;z-index:2}
 .app-pages::-webkit-scrollbar{display:none}
 .app-page{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:flex-start;justify-content:center;padding:10px 6px 0}
 .app-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:22px 14px;width:100%;max-width:380px;justify-items:center}
 .app-icon{display:flex;flex-direction:column;align-items:center;gap:7px;width:74px;cursor:pointer;border:none;background:none;padding:0;transition:transform .13s}
 .app-icon:active{transform:scale(.86)}
-.app-icon .icon{width:60px;height:60px;border-radius:17px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;position:relative;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.22)}
-.app-icon .icon::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,0.28),rgba(255,255,255,0) 46%)}
+.app-icon .icon{
+  width:62px;height:62px;border-radius:18px;display:flex;align-items:center;justify-content:center;
+  color:#fff;font-size:24px;font-weight:600;position:relative;overflow:hidden;
+  box-shadow:0 6px 18px rgba(0,0,0,0.38), inset 0 1px 0 rgba(255,255,255,0.28);
+}
+.app-icon .icon::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,0.30),rgba(255,255,255,0) 46%)}
 .app-icon .icon span{position:relative;z-index:1}
-.app-icon .name{font-size:11px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.7);text-align:center;line-height:1.2;max-width:74px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.app-icon .name{font-size:11px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,0.6);text-align:center;line-height:1.2;max-width:74px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* 统一灰萌图标色系（与壁纸协调） */
-.icon-wechat{background:linear-gradient(155deg,#5e6a76,#333a44)}
-.icon-settings{background:linear-gradient(155deg,#7a828c,#474e57)}
-.icon-tavern{background:linear-gradient(155deg,#6f6355,#3f3830)}
-.icon-character{background:linear-gradient(155deg,#6d7784,#3c444e)}
-.icon-worldbook{background:linear-gradient(155deg,#5d6b7a,#333d49)}
-.icon-style{background:linear-gradient(155deg,#716d83,#434052)}
-.icon-music{background:linear-gradient(155deg,#6e5558,#3c2e30)}
-.icon-couple{background:linear-gradient(155deg,#7d6068,#47363c)}
-.icon-shop{background:linear-gradient(155deg,#71684f,#413c2f)}
-.icon-forum{background:linear-gradient(155deg,#4d7180,#2c4049)}
-.icon-checkphone{background:linear-gradient(155deg,#5d7582,#35454e)}
-.icon-reading{background:linear-gradient(155deg,#716856,#403a30)}
-.icon-photos{background:linear-gradient(155deg,#716a5e,#403c35)}
-.icon-notes{background:linear-gradient(155deg,#6b765a,#3d4434)}
-.icon-clock{background:linear-gradient(155deg,#66707e,#3a414b)}
-.icon-phone{background:linear-gradient(155deg,#5d7a66,#35473c)}
-.icon-mail{background:linear-gradient(155deg,#5a6c80,#33404d)}
-.icon-camera{background:linear-gradient(155deg,#6b6b74,#3c3c43)}
+/* 图标配色（灰萌系） */
+.icon-wechat{background:linear-gradient(160deg,#5e6a76,#39414a)}
+.icon-settings{background:linear-gradient(160deg,#9aa1ab,#5b626b)}
+.icon-tavern{background:linear-gradient(160deg,#8a7460,#4c4136)}
+.icon-character{background:linear-gradient(160deg,#8b95a3,#4d565f)}
+.icon-worldbook{background:linear-gradient(160deg,#72808f,#404b56)}
+.icon-style{background:linear-gradient(160deg,#a79fbc,#655f79)}
+.icon-music{background:linear-gradient(160deg,#c05e5e,#7c3b3b)}
+.icon-couple{background:linear-gradient(160deg,#c98ba0,#8a5568)}
+.icon-shop{background:linear-gradient(160deg,#a9966a,#6b5f40)}
+.icon-forum{background:linear-gradient(160deg,#5f97a8,#38606c)}
+.icon-checkphone{background:linear-gradient(160deg,#8aa8b8,#4d6670)}
+.icon-reading{background:linear-gradient(160deg,#b0a08a,#6b5f4c)}
+.icon-photos{background:linear-gradient(160deg,#b0a89a,#6b6458)}
+.icon-notes{background:linear-gradient(160deg,#a8b890,#67704f)}
+.icon-clock{background:linear-gradient(160deg,#9aa9bb,#59626e)}
+.icon-phone{background:linear-gradient(160deg,#7fae8f,#4d7058)}
+.icon-mail{background:linear-gradient(160deg,#7f9ec0,#4d6276)}
+.icon-camera{background:linear-gradient(160deg,#9a9aa2,#5a5a62)}
 
 /* ============ Dock ============ */
 .dock{padding:12px 14px calc(var(--safe-bottom) + 16px);position:relative;z-index:2;flex-shrink:0}
-.dock-bg{display:flex;justify-content:space-around;align-items:center;background:rgba(38,40,46,0.55);backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);border-radius:26px;padding:12px 10px;box-shadow:0 6px 24px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08)}
+.dock-bg{display:flex;justify-content:space-around;align-items:center;background:rgba(40,42,48,0.55);backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);border-radius:26px;padding:12px 10px;box-shadow:0 6px 24px rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.08)}
 .dock-apps{display:flex;justify-content:space-around;width:100%}
-.dock .app-icon .icon{width:54px;height:54px;border-radius:16px}
+.dock .app-icon .icon{width:56px;height:56px;border-radius:16px}
 .dock .app-icon .name{display:none}
 
 /* ============ 应用容器 ============ */
-.app-container{position:absolute;inset:0;z-index:200;background:var(--bg);transform:translateX(100%);transition:transform .34s cubic-bezier(.32,.72,.24,1);display:flex;flex-direction:column}
+.app-container{position:absolute;inset:0;z-index:100;background:var(--bg);transform:translateX(100%);transition:transform .34s cubic-bezier(.32,.72,.24,1);display:flex;flex-direction:column}
 .app-container.open{transform:translateX(0)}
 .app-screen{flex:1;display:flex;flex-direction:column;overflow:hidden;animation:appIn .28s ease}
 @keyframes appIn{from{opacity:.5;transform:scale(.985)}to{opacity:1;transform:none}}
@@ -112,13 +135,6 @@ button{font-family:inherit}
 .list-item .item-right{font-size:12px;color:var(--muted);flex-shrink:0}
 .chevron{color:#4a4f57;font-size:20px;flex-shrink:0}
 
-/* 分页 Tab（各应用内板块切换） */
-.seg-tabs{display:flex;background:var(--card);border-radius:12px;padding:4px;margin-bottom:14px;gap:2px;position:sticky;top:0;z-index:5}
-.seg-tabs .seg{flex:1;padding:9px 0;text-align:center;background:none;border:none;border-radius:9px;font-size:13px;font-weight:500;color:var(--muted);cursor:pointer;transition:all .15s}
-.seg-tabs .seg.active{background:var(--card-2);color:var(--text);font-weight:600}
-.seg-panel{display:none}
-.seg-panel.active{display:block;animation:fadeIn .18s}
-
 /* 表单 */
 .field{margin-bottom:13px}
 .field label{display:block;font-size:12px;color:var(--muted);margin-bottom:7px}
@@ -127,29 +143,29 @@ button{font-family:inherit}
 .field textarea{resize:vertical;min-height:84px;line-height:1.6}
 .field .hint{font-size:11px;color:var(--muted-2);margin-top:6px}
 select option{background:var(--card-2);color:var(--text)}
-.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:12px;border:none;background:#5a626c;color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:transform .1s,opacity .1s}
+.btn{display:inline-flex;align-items:center;justify-content:center;padding:12px 18px;border-radius:12px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:transform .1s,opacity .1s}
 .btn:active{transform:scale(.97);opacity:.9}
 .btn-block{width:100%}
 .btn-secondary{background:var(--card-2);color:var(--text-2)}
 .btn-ghost{background:transparent;border:1px solid var(--hairline-2);color:var(--text-2)}
-.btn-wechat{background:var(--wechat)}
-.btn-netease{background:var(--netease)}
-.btn-sm{padding:8px 12px;font-size:12px;border-radius:9px}
 .btn-row{display:flex;gap:10px}
 .btn-row .btn{flex:1}
+.btn-sm{padding:8px 12px;font-size:12px;border-radius:9px}
 
 /* 开关 */
 .switch{position:relative;display:inline-block;width:48px;height:29px;flex-shrink:0}
 .switch input{opacity:0;width:0;height:0}
 .switch .slider{position:absolute;inset:0;border-radius:15px;background:#3a3e46;transition:.2s;cursor:pointer}
 .switch .slider::before{content:'';position:absolute;left:3px;top:3px;width:23px;height:23px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);transition:.2s}
-.switch input:checked + .slider{background:var(--wechat)}
+.switch input:checked + .slider{background:#7c8793}
 .switch input:checked + .slider::before{transform:translateX(19px)}
 
-/* chips */
+/* 标签 / chips */
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:7px 13px;border-radius:20px;background:var(--card-2);border:1px solid var(--hairline-2);font-size:12px;color:var(--text-2);cursor:pointer;transition:all .15s}
 .chip.active{background:#3d434c;color:#fff;border-color:#4d545f}
+
+/* 空状态 */
 .empty{padding:40px 20px;text-align:center;color:var(--muted);font-size:13px}
 
 /* ============ 微信 ============ */
@@ -170,8 +186,8 @@ select option{background:var(--card-2);color:var(--text)}
 .chat-row .unread{min-width:18px;height:18px;border-radius:9px;background:#e0554f;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0 5px;margin-left:8px}
 
 /* 聊天详情 */
-.chat-detail-screen{background:#15171b}
-.chat-mind{background:rgba(255,255,255,0.03);border-bottom:1px solid var(--hairline);padding:8px 16px;font-size:12px;color:var(--muted);display:none}
+.chat-detail-screen{background:#1a1c20}
+.chat-mind{background:rgba(255,255,255,0.03);border-bottom:1px solid var(--hairline);padding:8px 16px;font-size:12px;color:var(--muted);min-height:18px;display:none}
 .chat-mind.show{display:block}
 .message-list{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:14px 14px 8px;display:flex;flex-direction:column;gap:11px}
 .msg{display:flex;margin:2px 0;align-items:flex-end}
@@ -180,22 +196,23 @@ select option{background:var(--card-2);color:var(--text)}
 .msg.me .avatar-s{display:none}
 .msg .bubble{max-width:74%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.5;word-break:break-word;position:relative}
 .msg.char .bubble{background:var(--card-2);border-bottom-left-radius:6px;border:1px solid var(--hairline)}
-.msg.me .bubble{background:#2f6d4b;border-bottom-right-radius:6px;color:#fff}
+.msg.me .bubble{background:#3d4a5c;border-bottom-right-radius:6px;color:#fff}
 .msg .bubble .sys{font-size:13px;color:var(--muted)}
 .msg .bubble img{border-radius:10px;margin-top:4px;max-width:200px}
 .msg .bubble audio{width:100%;max-width:210px;margin-top:4px}
-.msg .bubble .bubble-tools{display:flex;gap:12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--hairline)}
+.msg .bubble .bubble-tools{display:flex;gap:10px;margin-top:8px;padding-top:8px;border-top:1px solid var(--hairline)}
 .msg .bubble .bubble-tools button{background:none;border:none;color:#7fb0d8;font-size:12px;cursor:pointer;padding:0}
 .msg .bubble .location-card{background:rgba(255,255,255,0.06);border-radius:10px;padding:10px;margin-top:4px;font-size:13px}
 .msg .bubble .redpacket{background:#d44a3f;border-radius:10px;padding:12px;color:#fff;font-size:13px;margin-top:2px;text-align:center}
 .msg .bubble .transfer{background:#e8a23d;border-radius:10px;padding:12px;color:#4a3010;font-size:13px;margin-top:2px;text-align:center}
 .msg .bubble .call-card{background:rgba(255,255,255,0.06);border-radius:10px;padding:10px;margin-top:4px;font-size:13px;text-align:center}
-.msg .bubble .sticker{width:100px;height:100px;object-fit:contain;margin-top:2px}
 .msg.typing .bubble{background:var(--card-2)}
 .typing-dots{display:flex;gap:4px;padding:4px 2px}
 .typing-dots span{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:blink 1.2s infinite}
-.typing-dots span:nth-child(2){animation-delay:.2s}.typing-dots span:nth-child(3){animation-delay:.4s}
+.typing-dots span:nth-child(2){animation-delay:.2s}
+.typing-dots span:nth-child(3){animation-delay:.4s}
 @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
 .chat-composer{display:flex;align-items:center;gap:6px;padding:9px 10px calc(var(--safe-bottom) + 9px);background:var(--glass-strong);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-top:1px solid var(--hairline);flex-shrink:0}
 .composer-btn{width:38px;height:38px;border-radius:50%;border:none;background:none;color:var(--text-2);cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;flex-shrink:0}
 .composer-btn svg{width:25px;height:25px;fill:currentColor}
@@ -205,9 +222,17 @@ select option{background:var(--card-2);color:var(--text)}
 .action-item{display:flex;flex-direction:column;align-items:center;gap:7px;cursor:pointer;background:none;border:none;padding:0}
 .action-item .ai{width:54px;height:54px;border-radius:14px;background:var(--card-2);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:600;color:#fff;border:1px solid var(--hairline)}
 .action-item span{font-size:11px;color:var(--muted)}
+
+/* 通讯录 */
 .contact-letter{font-size:12px;color:var(--muted);padding:8px 16px 4px;background:var(--bg)}
 .contact-add{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid var(--hairline);cursor:pointer}
+.contact-add:active{background:rgba(255,255,255,0.04)}
 .contact-add .avatar{width:44px;height:44px;border-radius:9px;background:var(--card-2);display:flex;align-items:center;justify-content:center;font-size:22px;color:var(--muted)}
+
+/* 发现 */
+.discover-group{margin-bottom:12px}
+
+/* 朋友圈 */
 .moment-item{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:10px;border:1px solid var(--hairline)}
 .moment-item .m-head{display:flex;align-items:center;gap:10px}
 .moment-item .m-avatar{width:42px;height:42px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600}
@@ -226,9 +251,10 @@ select option{background:var(--card-2);color:var(--text)}
 .char-card-big .cc-name{font-size:16px;font-weight:600}
 .char-card-big .cc-tags{font-size:11px;color:var(--muted);margin-top:3px}
 .char-card-big .cc-badge{position:absolute;top:12px;right:12px;font-size:10px;background:#3d434c;color:#fff;padding:3px 9px;border-radius:10px}
-.char-card-big .cc-mind{font-size:12px;color:var(--text-2);margin-top:8px;padding:8px 10px;background:var(--card-2);border-radius:8px;border-left:2px solid var(--wechat)}
 .char-card-big .cc-persona{font-size:13px;color:var(--text-2);line-height:1.6;margin-top:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .char-card-big .cc-actions{display:flex;gap:8px;margin-top:12px}
+
+/* 防串味区 */
 .guard-box{background:var(--card-2);border-radius:12px;padding:12px;margin-top:10px;border:1px solid var(--hairline)}
 .guard-box .guard-title{font-size:12px;font-weight:600;color:var(--text-2);margin-bottom:8px}
 
@@ -237,18 +263,18 @@ select option{background:var(--card-2);color:var(--text)}
 .wb-item .wb-top{display:flex;align-items:center;gap:10px}
 .wb-item .wb-name{font-size:15px;font-weight:600;flex:1}
 .wb-item .wb-content{font-size:12px;color:var(--muted);line-height:1.6;margin-top:8px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-.wb-item .wb-meta{display:flex;align-items:center;gap:14px;margin-top:10px;font-size:11px;color:var(--muted);flex-wrap:wrap}
+.wb-item .wb-meta{display:flex;align-items:center;gap:14px;margin-top:10px;font-size:11px;color:var(--muted)}
 .wb-item .wb-actions{display:flex;gap:8px;margin-top:10px}
 
-/* ============ 网易云音乐 ============ */
-.music-hero{background:linear-gradient(180deg,#3a2323,#15171b);padding:20px 16px 26px}
-.music-user{display:flex;align-items:center;gap:12px}
-.music-user .avatar{width:54px;height:54px;border-radius:50%;background:var(--card-2);display:flex;align-items:center;justify-content:center;font-size:22px;border:1px solid var(--hairline-2)}
-.music-user .nick{font-size:16px;font-weight:600}
-.music-user .status{font-size:12px;color:var(--muted);margin-top:3px}
-.music-subtabs{display:flex;gap:18px;margin-top:22px}
-.music-subtabs .tab{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 0;border-bottom:2px solid transparent}
-.music-subtabs .tab.active{color:var(--netease);border-bottom-color:var(--netease);font-weight:600}
+/* ============ 音乐 ============ */
+.music-top{background:linear-gradient(180deg,#3a2323,#1a1c20);padding:20px 16px 30px}
+.music-login{display:flex;align-items:center;gap:12px}
+.music-login .avatar{width:54px;height:54px;border-radius:50%;background:var(--card-2);display:flex;align-items:center;justify-content:center;font-size:22px}
+.music-login .nick{font-size:16px;font-weight:600}
+.music-login .status{font-size:12px;color:var(--muted);margin-top:3px}
+.music-tabs{display:flex;gap:16px;margin-top:22px}
+.music-tabs .tab{background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 0;border-bottom:2px solid transparent}
+.music-tabs .tab.active{color:#e0554f;border-bottom-color:#e0554f;font-weight:600}
 .music-body-inner{padding:16px}
 .track-row{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--hairline);cursor:pointer}
 .track-row .track-idx{width:24px;text-align:center;color:var(--muted);font-size:14px}
@@ -256,16 +282,8 @@ select option{background:var(--card-2);color:var(--text)}
 .track-row .track-name{font-size:14px;font-weight:500}
 .track-row .track-artist{font-size:11px;color:var(--muted);margin-top:3px}
 .track-row .track-play{color:var(--muted)}
-.playlist-card{display:flex;gap:12px;background:var(--card);border-radius:var(--radius);padding:12px;margin-bottom:10px;border:1px solid var(--hairline)}
-.playlist-card .pl-cover{width:56px;height:56px;border-radius:10px;background:var(--card-2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:22px}
-.playlist-card .pl-info{flex:1;min-width:0}
-.playlist-card .pl-name{font-size:14px;font-weight:600}
-.playlist-card .pl-count{font-size:11px;color:var(--muted);margin-top:4px}
-.qr-box{text-align:center;padding:20px}
-.qr-box img{width:180px;height:180px;margin:0 auto;border-radius:12px;background:#fff;padding:8px}
-.qr-box .qr-tip{font-size:12px;color:var(--muted);margin-top:12px}
 .player-bar{position:absolute;bottom:0;left:0;right:0;background:var(--glass-strong);backdrop-filter:blur(22px);-webkit-backdrop-filter:blur(22px);border-top:1px solid var(--hairline);padding:10px 14px calc(var(--safe-bottom) + 10px);display:flex;align-items:center;gap:12px;z-index:20}
-.player-bar .pb-art{width:44px;height:44px;border-radius:10px;background:linear-gradient(160deg,#6e5558,#3c2e30);flex-shrink:0;animation:spin 14s linear infinite}
+.player-bar .pb-art{width:44px;height:44px;border-radius:10px;background:linear-gradient(160deg,#c05e5e,#7c3b3b);flex-shrink:0;animation:spin 14s linear infinite}
 @keyframes spin{to{transform:rotate(360deg)}}
 .player-bar .pb-info{flex:1;min-width:0}
 .player-bar .pb-name{font-size:14px;font-weight:500}
@@ -274,7 +292,7 @@ select option{background:var(--card-2);color:var(--text)}
 .player-bar .pb-btn svg{width:24px;height:24px;fill:currentColor}
 
 /* ============ 情侣空间 ============ */
-.couple-hero{background:linear-gradient(160deg,#4a2a35,#15171b);border-radius:var(--radius-lg);padding:22px;margin-bottom:14px}
+.couple-hero{background:linear-gradient(160deg,#4a2a35,#1a1c20);border-radius:var(--radius-lg);padding:22px;margin-bottom:14px}
 .couple-hero .points{font-size:34px;font-weight:700}
 .couple-hero .points-label{font-size:12px;color:var(--muted);margin-top:4px}
 .couple-hero .hearts{font-size:13px;color:#e08a9a;margin-top:10px}
@@ -285,7 +303,7 @@ select option{background:var(--card-2);color:var(--text)}
 .task-row .task-name{flex:1;font-size:14px}
 .task-row .task-points{font-size:12px;color:#e0a13a}
 .item-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.sweet-item{background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;border:1px solid var(--hairline);cursor:pointer}
+.sweet-item{background:var(--card);border-radius:var(--radius);padding:14px;text-align:center;border:1px solid var(--hairline)}
 .sweet-item .si-icon{width:50px;height:50px;border-radius:14px;margin:0 auto 8px;display:flex;align-items:center;justify-content:center;font-size:20px;color:#fff}
 .sweet-item .si-name{font-size:12px;font-weight:500}
 .sweet-item .si-cost{font-size:11px;color:#e0a13a;margin-top:4px}
@@ -312,26 +330,23 @@ select option{background:var(--card-2);color:var(--text)}
 .zh-item .zh-title{font-size:16px;font-weight:600;line-height:1.4}
 .zh-item .zh-excerpt{font-size:13px;color:var(--muted);margin-top:6px;line-height:1.5}
 .zh-item .zh-meta{display:flex;gap:16px;font-size:12px;color:var(--muted);margin-top:10px}
-.zh-item .zh-hot{color:var(--zhihu);font-weight:600}
+.zh-item .zh-hot{color:#e0554f;font-weight:600}
 .zh-answer{background:var(--card);border-radius:var(--radius);padding:16px;margin-bottom:12px;border:1px solid var(--hairline)}
 .zh-answer .za-author{display:flex;align-items:center;gap:10px}
 .zh-answer .za-avatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:14px}
 .zh-answer .za-name{font-size:13px;font-weight:500}
 .zh-answer .za-text{font-size:14px;line-height:1.7;margin-top:10px}
 
-/* ============ 共读（读书应用） ============ */
-.bookshelf{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:4px}
-.book-cover-item{display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer}
-.book-cover-item .cover{width:100%;aspect-ratio:3/4;border-radius:10px;background:linear-gradient(160deg,#5e6a76,#333a44);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:600;box-shadow:0 6px 16px rgba(0,0,0,0.4);position:relative;overflow:hidden}
-.book-cover-item .cover::after{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:rgba(0,0,0,0.25)}
-.book-cover-item .book-title{font-size:12px;text-align:center;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.reader-view{background:var(--card);border-radius:var(--radius);padding:22px;border:1px solid var(--hairline)}
-.reader-view .reader-text{font-size:17px;line-height:2;white-space:pre-wrap;color:var(--text-2)}
-.reader-toolbar{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--hairline);margin-bottom:14px}
-.reader-toolbar .rt-btn{background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:4px 8px}
+/* ============ 同人文/共读 ============ */
+.book-row{display:flex;gap:12px;background:var(--card);border-radius:var(--radius);padding:14px;margin-bottom:10px;border:1px solid var(--hairline)}
+.book-row .book-cover{width:64px;height:88px;border-radius:8px;background:linear-gradient(160deg,#5e6a76,#39414a);flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:600}
+.book-row .book-info{flex:1;min-width:0}
+.book-row .book-name{font-size:15px;font-weight:600}
+.book-row .book-desc{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.reader-view{background:var(--card);border-radius:var(--radius);padding:22px;font-size:16px;line-height:2;border:1px solid var(--hairline)}
 
 /* ============ 弹窗 ============ */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:500;animation:fadeIn .15s}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:flex;align-items:center;justify-content:center;z-index:400;animation:fadeIn .15s}
 .modal{background:var(--card);border-radius:20px;padding:22px;width:88%;max-width:380px;max-height:82vh;overflow-y:auto;animation:popIn .22s cubic-bezier(.34,1.3,.5,1)}
 @keyframes popIn{from{opacity:0;transform:scale(.9)}to{opacity:1;transform:none}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -339,12 +354,123 @@ select option{background:var(--card-2);color:var(--text)}
 .modal .field{margin-bottom:12px}
 .modal .btn-row{margin-top:16px}
 .modal-close{float:right;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0}
-.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.9);background:rgba(0,0,0,0.78);color:#fff;padding:13px 22px;border-radius:14px;font-size:13px;opacity:0;transition:all .25s;z-index:600;pointer-events:none;max-width:82%;text-align:center}
+
+/* Toast */
+.toast{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.9);background:rgba(0,0,0,0.78);color:#fff;padding:13px 22px;border-radius:14px;font-size:13px;opacity:0;transition:all .25s;z-index:500;pointer-events:none;max-width:82%;text-align:center}
 .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
-.home-indicator{position:absolute;bottom:calc(var(--safe-bottom) + 6px);left:50%;transform:translateX(-50%);width:124px;height:4px;border-radius:2px;background:rgba(255,255,255,0.45);z-index:400;pointer-events:none}
+
+/* 底部指示条 */
+.home-indicator{position:absolute;bottom:calc(var(--safe-bottom) + 6px);left:50%;transform:translateX(-50%);width:124px;height:4px;border-radius:2px;background:rgba(255,255,255,0.45);z-index:300;pointer-events:none}
+
+/* 时间戳 */
+.time-sep{text-align:center;font-size:11px;color:var(--muted-2);margin:10px 0 4px}
 
 @media (max-width:360px){
   .app-grid{gap:18px 10px}
   .app-icon .icon{width:54px;height:54px;border-radius:16px}
   .app-icon .name{font-size:10px}
 }
+
+/* ============ 长按操作面板 ============ */
+.sheet-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:400;display:flex;align-items:flex-end;animation:fadeIn .15s}
+.sheet{width:100%;max-width:420px;margin:0 auto;background:var(--card);border-radius:20px 20px 0 0;padding:8px 14px calc(var(--safe-bottom) + 14px);animation:sheetUp .2s ease}
+@keyframes sheetUp{from{transform:translateY(100%)}to{transform:none}}
+.sheet-item{display:block;width:100%;padding:15px;background:none;border:none;color:var(--text);font-size:15px;text-align:center;border-bottom:1px solid var(--hairline);cursor:pointer;border-radius:10px}
+.sheet-item:active{background:rgba(255,255,255,0.06)}
+.sheet-item.sheet-cancel{color:#e0554f;font-weight:600;border-bottom:none;margin-top:6px}
+
+/* ============ 消息卡片（独立，非气泡） ============ */
+.msg-card{max-width:74%;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.2);cursor:pointer}
+.msg.me .msg-card{margin-left:auto}
+.msg-card img{display:block;max-width:100%}
+.msg-image{background:transparent;box-shadow:none}
+.msg-image img{border-radius:12px;max-width:200px}
+.msg-location{display:flex;align-items:center;gap:10px;background:#fff;padding:12px 14px;color:#333}
+.msg-location .loc-icon{width:38px;height:38px;border-radius:8px;background:#e8f2e8;color:#4d7058;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.msg-location .loc-name{font-size:14px;font-weight:600;color:#333}
+.msg-location .loc-addr{font-size:12px;color:#999;margin-top:3px}
+.msg-transfer{display:flex;align-items:center;gap:12px;background:#fdf6ec;padding:12px 14px;color:#4a3010;border:1px solid #f0e0c0}
+.msg-transfer .tr-icon{width:40px;height:40px;border-radius:50%;background:#e8a23d;color:#fff;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0}
+.msg-transfer .tr-title{font-size:12px;color:#a9762a}
+.msg-transfer .tr-amt{font-size:20px;font-weight:700;margin-top:2px}
+.msg-redpacket{display:flex;align-items:center;gap:12px;background:#f04e3e;padding:12px 14px;color:#fff}
+.msg-redpacket .rp-icon{width:40px;height:40px;border-radius:8px;background:#f7b731;color:#a8541d;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:700;flex-shrink:0}
+.msg-redpacket .rp-title{font-size:14px;font-weight:600}
+.msg-redpacket .rp-sub{font-size:11px;opacity:.85;margin-top:3px}
+.msg-redpacket .rp-opened{font-size:11px;opacity:.7;margin-left:auto;white-space:nowrap}
+
+/* ============ 语音气泡（微信风格） ============ */
+.voice-bubble{display:flex;align-items:center;gap:8px;padding:10px 14px;border-radius:16px;min-width:120px;cursor:pointer}
+.voice-bubble.me{background:#3d4a5c;color:#fff;border-bottom-right-radius:6px;flex-direction:row-reverse}
+.voice-bubble.char{background:var(--card-2);border-bottom-left-radius:6px;border:1px solid var(--hairline)}
+.voice-bubble .vb-play{width:20px;height:20px;flex-shrink:0}
+.voice-bubble .vb-bars{display:flex;align-items:center;gap:2px;flex:1;height:22px}
+.voice-bubble .vb-bars span{width:3px;background:currentColor;border-radius:2px;opacity:.7}
+.voice-bubble .vb-bars span:nth-child(1){height:10px}.voice-bubble .vb-bars span:nth-child(2){height:18px}.voice-bubble .vb-bars span:nth-child(3){height:13px}
+.voice-bubble.playing .vb-bars span{animation:vb 1s infinite}
+.voice-bubble.playing .vb-bars span:nth-child(2){animation-delay:.2s}
+.voice-bubble.playing .vb-bars span:nth-child(3){animation-delay:.4s}
+@keyframes vb{0%,100%{opacity:.4}50%{opacity:1}}
+.voice-bubble .vb-dur{font-size:12px;opacity:.8;white-space:nowrap}
+
+/* ============ 心声浮动卡片 ============ */
+.mind-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:350;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s}
+.mind-card{width:86%;max-width:340px;background:linear-gradient(160deg,#2a2e35,#1c1f24);border-radius:22px;padding:24px;border:1px solid var(--hairline-2);box-shadow:0 20px 60px rgba(0,0,0,0.5);animation:popIn .22s ease}
+.mind-card .mind-avatar{width:60px;height:60px;border-radius:50%;background:linear-gradient(135deg,#9ea7b3,#5a626c);display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:600;margin:0 auto 12px}
+.mind-card .mind-name{text-align:center;font-size:16px;font-weight:600}
+.mind-card .mind-meta{display:flex;justify-content:center;gap:14px;margin:12px 0;flex-wrap:wrap}
+.mind-card .mind-meta span{font-size:12px;color:var(--text-2);background:var(--card-2);padding:5px 12px;border-radius:14px}
+.mind-card .mind-text{font-size:14px;line-height:1.8;color:var(--text-2);margin-bottom:16px}
+
+/* ============ 通话界面 ============ */
+.call-overlay{position:fixed;inset:0;background:rgba(10,11,13,0.97);z-index:380;display:flex;align-items:center;justify-content:center;animation:fadeIn .2s}
+.call-full{width:100%;max-width:420px;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.call-avatar{width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,#9ea7b3,#5a626c);display:flex;align-items:center;justify-content:center;color:#fff;font-size:50px;font-weight:600;box-shadow:0 10px 40px rgba(0,0,0,0.5)}
+.call-name{font-size:22px;font-weight:600;margin-top:20px}
+.call-timer{font-size:15px;color:var(--muted);margin-top:6px}
+.call-status{font-size:13px;color:var(--muted);margin-top:4px}
+.call-dialogue{width:100%;max-height:140px;overflow-y:auto;margin-top:24px;display:flex;flex-direction:column;gap:8px}
+.cd-line{background:rgba(255,255,255,0.08);padding:10px 14px;border-radius:12px;font-size:13px;color:var(--text-2);line-height:1.5}
+.call-controls{display:flex;gap:24px;margin-top:auto;padding-top:30px}
+.cc-btn{width:56px;height:56px;border-radius:50%;border:none;background:rgba(255,255,255,0.12);color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.cc-btn svg{width:26px;height:26px}
+.cc-btn.active{background:#4a515a}
+.cc-btn.cc-hangup{background:#e0554f;transform:rotate(135deg)}
+
+/* ============ 二维码登录 ============ */
+.qr-box{text-align:center;padding:10px 0}
+.qr-img{width:180px;height:180px;background:#fff;border-radius:14px;margin:0 auto;display:block;padding:10px}
+.qr-tip{font-size:12px;color:var(--muted);margin-top:14px}
+
+/* ============ 歌词 ============ */
+.lyrics-box{max-height:320px;overflow-y:auto;padding:10px 4px;-webkit-overflow-scrolling:touch}
+.lyric-line{padding:10px 8px;font-size:14px;color:var(--muted);text-align:center;transition:all .3s;border-radius:8px}
+.lyric-line.active{color:#fff;font-size:17px;font-weight:600;transform:scale(1.02)}
+
+/* ============ 角色列表 ============ */
+.char-list{display:grid;gap:12px}
+
+/* ============ 线下/酒馆 hero ============ */
+.offline-hero{background:linear-gradient(160deg,#3a2d22,#1a1c20);border-radius:var(--radius-lg);padding:26px 22px;margin-bottom:14px}
+.offline-hero .oh-title{font-size:24px;font-weight:700}
+.offline-hero .oh-sub{font-size:13px;color:var(--muted);margin-top:8px}
+
+/* ============ 商城 ============ */
+.shop-banner{background:linear-gradient(160deg,#4a3a20,#1a1c20);border-radius:var(--radius);padding:22px;text-align:center;font-size:18px;font-weight:700;margin-bottom:14px}
+.shop-product .sp-img{height:110px;display:flex;align-items:center;justify-content:center;font-size:34px;color:#fff;font-weight:600}
+.shop-product .sp-body .btn{margin-top:8px}
+
+/* ============ 论坛 tab ============ */
+.forum-tabs{display:flex;gap:4px;background:var(--card);border-radius:12px;padding:4px;margin-bottom:14px}
+.forum-tabs .tab{flex:1;padding:9px;background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;border-radius:9px}
+.forum-tabs .tab.active{background:#3d434c;color:#fff;font-weight:600}
+
+/* ============ 查手机 mock ============ */
+.pm-status-icons{display:flex;gap:3px;color:#fff;font-size:8px}
+.pm-wallpaper{height:60px;margin:-4px -4px 12px;border-radius:10px;background:linear-gradient(160deg,#5e6a76,#39414a);opacity:.5}
+.phone-mock{position:relative;background:var(--card);border-radius:var(--radius-lg);padding:16px;border:1px solid var(--hairline);margin-bottom:14px;overflow:hidden}
+.phone-mock .pm-status{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:10px;position:relative;z-index:2}
+.phone-mock .pm-apps{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;position:relative;z-index:2}
+.phone-mock .pm-app{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.phone-mock .pm-app .pm-icon{width:46px;height:46px;border-radius:13px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;font-weight:600}
+.phone-mock .pm-app span{font-size:10px;color:var(--muted)}
