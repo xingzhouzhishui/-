@@ -13,6 +13,12 @@ const store = {
 const uid = p => (p||'id') + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6)
 const now = () => Date.now()
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+const trunc = (s, n) => { s = String(s||''); return s.length > n ? s.slice(0, n) + '…' : s }
+function msgPreview(m){
+  if(!m) return ''
+  if(m.type === 'text') return m.text
+  return ({image:'[图片]',audio:'[语音]',location:'[位置]',transfer:'[转账]',redpacket:'[红包]',call:'[通话]',sticker:'[表情]',system:'[系统]'}[m.type]||'[消息]')
+}
 
 // ============ 应用注册表 ============
 const APPS = [
@@ -77,6 +83,12 @@ function getSettings(){ return store.get('settings', { fontSize:15, fontUrl:'', 
 function saveSettings(s){ store.set('settings', s) }
 function memory(key){ return store.get('memory_' + key, null) }
 function memorySet(key, v){ store.set('memory_' + key, v) }
+
+// 头像渲染（有图显示图，无图显示首字）
+function avatarHTML(obj, cls, extra){
+  if(obj && obj.avatar){ return `<div class="avatar ${cls||''}" style="background-image:url(${obj.avatar});background-size:cover;background-position:center;${extra||''}"></div>` }
+  return `<div class="avatar ${cls||''}" style="${extra||''}">${esc((obj?.name||'?')[0])}</div>`
+}
 
 // 角色 AI 上下文（防串味）
 function buildCharContext(char){
@@ -265,7 +277,7 @@ function renderDiscoverPanel(){
     <div class="list-group">
       <div class="list-item" data-nav="mini-music"><div class="item-icon icon-music">音</div><div class="item-body"><div class="item-title">网易云音乐</div><div class="item-sub">听歌、共听</div></div><span class="chevron">›</span></div>
       <div class="list-item" data-nav="mini-couple"><div class="item-icon icon-couple">情</div><div class="item-body"><div class="item-title">情侣空间</div></div><span class="chevron">›</span></div>
-      <div class="list-item" data-nav="mini-offline"><div class="item-icon icon-tavern">下</div><div class="item-body"><div class="item-title">线下</div><div class="item-sub">酒馆模拟</div></div><span class="chevron">›</span></div>
+      <div class="list-item" data-nav="mini-offline"><div class="item-icon icon-tavern">下</div><div class="item-body"><div class="item-title">线下</div><div class="item-sub">沉浸长文对话</div></div><span class="chevron">›</span></div>
       <div class="list-item" data-nav="mini-shop"><div class="item-icon icon-shop">商</div><div class="item-body"><div class="item-title">商城</div></div><span class="chevron">›</span></div>
     </div>
   `
@@ -326,6 +338,11 @@ function openChatDetail(chatId){
   qs('#chatDetailName').textContent = chat.name
   const char = getCharByName(chat.name)
   qs('#chatDetailSub').textContent = (char && char.readNoReply) ? '在线 · 已读不回' : (chat.type === 'group' ? '群聊' : '在线')
+  // 聊天背景
+  const screen = qs('.chat-detail-screen')
+  const bg = (char && char.chatBg) || (currentProfile() && currentProfile().chatBg)
+  const bgUrl = (char && char.chatBgUrl) || (currentProfile() && currentProfile().chatBgUrl)
+  if(screen){ screen.style.backgroundImage = bg ? `url(${bg})` : (bgUrl ? `url(${bgUrl})` : ''); screen.style.backgroundSize = 'cover'; screen.style.backgroundPosition = 'center' }
   appStack.push('chat-detail')
   renderChatDetail()
 }
@@ -371,18 +388,22 @@ function renderMessage(m, char){
   else if(m.type === 'system'){ inner = `<span class="sys">${esc(m.text)}</span>` }
   if(m.type === 'call' || m.type === 'system'){ return `<div class="time-sep" style="margin:4px 0">${esc(m.text)}</div>` }
   const wrapCls = cardCls ? 'msg-card ' + cardCls : 'bubble'
-  const avatarHtml = me ? '' : `<div class="avatar-s">${esc(avatar)}</div>`
-  const openAttr = (m.type === 'redpacket' && !m.opened && m.sender !== 'me') ? `data-open="${m.id}"` : ''
-  return `<div class="msg ${cls}" data-mid="${m.id}">${avatarHtml}<div class="${wrapCls}" ${openAttr}>${inner}</div></div>`
+  const profile = currentProfile() || {}
+  const charBubble = char ? (char.bubbleColor || '#26292f') : '#26292f'
+  const userBubble = profile.bubbleColor || '#3d4a5c'
+  const avatarHtml = me ? '' : (char && char.avatar ? `<div class="avatar-s" style="background-image:url(${char.avatar});background-size:cover;background-position:center"></div>` : `<div class="avatar-s">${esc(avatar)}</div>`)
+  const bubbleStyle = cardCls ? '' : (me ? `background:${userBubble}` : `background:${charBubble}`)
+  const openAttr = (m.type === 'redpacket' && !m.opened) ? `data-rp="${m.id}" data-rpsender="${m.sender}"` : ''
+  return `<div class="msg ${cls}" data-mid="${m.id}">${avatarHtml}<div class="${wrapCls}" style="${bubbleStyle}" ${openAttr}>${inner}</div></div>`
 }
 
 function voiceBubble(m, me){
   const dur = m.duration || 3
-  return `<div class="voice-bubble ${me?'me':'char'}" data-voice="${m.id}">
+  return `<div class="voice-wrap"><div class="voice-bubble ${me?'me':'char'}" data-voice="${m.id}">
     <svg viewBox="0 0 24 24" class="vb-play"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>
     <div class="vb-bars"><span></span><span></span><span></span></div>
     <span class="vb-dur">${dur}''</span>
-  </div>`
+  </div><div class="voice-text">${esc(m.text||'')}</div></div>`
 }
 
 function bindMessageLongPress(){
@@ -518,27 +539,31 @@ function clearTyping(){ const t = qs('#typingMsg'); if(t) t.remove() }
 function charReply(chat, char){
   showTyping(char ? (char.name||'?')[0] : '?')
   const replies = char ? [`我在听，你说。`, `${char.name}稍微停了一下，才回复你：「嗯，这件事我记得。」`, `「继续，我想知道更多。」`, `${char.name}没有立刻回答，像在斟酌用词。`] : ['我在。']
-  setTimeout(() => { clearTyping(); addMsg(activeChatId, { sender:'char', type:'text', text: replies[Math.floor(Math.random()*replies.length)] }) }, 900)
+  setTimeout(() => { clearTyping(); addMsg(activeChatId, { sender:'char', type:'text', text: replies[Math.floor(Math.random()*replies.length)] }); updateMind() }, 900)
 }
 function groupReply(chat){
   const members = chat.members || []
   const speaker = getChar(members[Math.floor(Math.random()*members.length)])
   if(!speaker){ showTyping('群'); setTimeout(() => { clearTyping(); addMsg(activeChatId, { sender:'char', type:'text', text:'群里还没有成员。' }) }, 800); return }
   showTyping((speaker.name||'?')[0])
-  setTimeout(() => { clearTyping(); addMsg(activeChatId, { sender:'char', type:'text', text:`${speaker.name}：大家都在呢。`, _speaker: speaker.name }) }, 900)
+  setTimeout(() => { clearTyping(); addMsg(activeChatId, { sender:'char', type:'text', text:`${speaker.name}：大家都在呢。`, _speaker: speaker.name }); updateMind() }, 900)
+}
+
+// 实时心声：根据最近对话更新
+function updateMind(){
+  const chat = getChats().find(c => c.id === activeChatId); if(!chat) return
+  const char = getCharByName(chat.name); if(!char) return
+  const msgs = getMsgs(activeChatId)
+  const lastUser = [...msgs].reverse().find(m => m.sender === 'me')
+  const lastChar = [...msgs].reverse().find(m => m.sender === 'char')
+  const topic = lastUser ? trunc(lastUser.text || '', 20) : '刚才的对话'
+  char.currentMind = `你刚才提到「${topic}」，${char.name}其实把每个字都听进去了。${lastChar && lastChar.text ? 'ta 刚才说「'+trunc(lastChar.text,20)+'」，' : ''}心里其实比说出来的更多。`
+  setCharacters(getCharacters())
 }
 
 // 语音消息（模拟微信 UI，实际为文字/合成）
 function sendVoice(){
-  const text = prompt('输入语音内容（将转换为语音气泡）：', '好的，我知道了')
-  if(text === null) return
-  const dur = Math.max(1, Math.round(text.length / 3))
-  addMsg(activeChatId, { sender:'me', type:'audio', text, duration: dur })
-  const chat = getChats().find(c => c.id === activeChatId); const char = chat ? getCharByName(chat.name) : null
-  setTimeout(() => {
-    showTyping(char ? (char.name||'?')[0] : '?')
-    setTimeout(() => { clearTyping(); addMsg(activeChatId, { sender:'char', type:'audio', text:'听到了，我也在听。', duration: 3 }) }, 700)
-  }, 600)
+  showModal({ title:'发送语音', body:`<div class="field"><label>语音内容（将转为语音）</label><textarea id="vcText" rows="3" placeholder="输入要说的话"></textarea></div>`, actions:[{label:'取消', cls:'btn btn-secondary'},{label:'发送', cls:'btn', onOk(){ const t = qs('#vcText').value.trim(); if(!t) return; const dur = Math.max(1, Math.round(t.length/2.5)); addMsg(activeChatId, { sender:'me', type:'audio', text:t, duration:dur }); const chat = getChats().find(c => c.id === activeChatId); const char = chat ? getCharByName(chat.name) : null; setTimeout(() => { showTyping(char ? (char.name||'?')[0] : '?'); setTimeout(() => { clearTyping(); addMsg(activeChatId, { sender:'char', type:'audio', text:'听到了，我也在听。', duration:3 }); updateMind() }, 700) }, 600); closeModal() }}] })
 }
 function bindVoicePlay(){
   qsa('[data-voice]', qs('#detailMessageList')).forEach(v => {
@@ -551,11 +576,16 @@ function bindVoicePlay(){
   })
 }
 function bindRedPacketOpen(){
-  qsa('[data-open]', qs('#detailMessageList')).forEach(rp => {
+  qsa('[data-rp]', qs('#detailMessageList')).forEach(rp => {
     rp.onclick = () => {
-      const id = rp.dataset.open
+      const id = rp.dataset.rp, sender = rp.dataset.rpsender
       const msgs = getMsgs(activeChatId); const m = msgs.find(x => x.id === id)
-      if(m && !m.opened){ m.opened = true; setMsgs(activeChatId, msgs); renderChatDetail(); addMsg(activeChatId, { sender:'me', type:'system', text:'你领取了 ta 的红包' }) }
+      if(!m || m.opened) return
+      m.opened = true; setMsgs(activeChatId, msgs)
+      const chat = getChats().find(c => c.id === activeChatId); const char = chat ? getCharByName(chat.name) : null
+      if(sender === 'me'){ setTimeout(() => addMsg(activeChatId, { sender:'char', type:'text', text: char ? `谢谢你的红包，我收到啦，心里很暖。` : '红包已领取。' }), 500) }
+      else addMsg(activeChatId, { sender:'system', type:'system', text:'你领取了 ta 的红包' })
+      renderChatDetail()
     }
   })
 }
@@ -588,24 +618,22 @@ function toggleActionPanel(){
 function handleChatAction(a, panel){
   panel.style.display = 'none'
   if(a === 'photo'){ pickImage(dataUrl => addMsg(activeChatId, { sender:'me', type:'image', dataUrl, text:'' })) }
-  else if(a === 'transfer'){ const amt = prompt('转账金额：', '88.88'); if(amt !== null) addMsg(activeChatId, { sender:'me', type:'transfer', text: Number(amt||0).toFixed(2) }) }
-  else if(a === 'redpacket'){ const amt = prompt('红包金额：', '66'); if(amt !== null) sendRedPacket(amt) }
-  else if(a === 'location'){ addMsg(activeChatId, { sender:'me', type:'location', text:'会展中心 · 2号门' }) }
+  else if(a === 'transfer'){ transferCard() }
+  else if(a === 'redpacket'){ redPacketCard() }
+  else if(a === 'location'){ locationCard() }
   else if(a === 'voicecall'){ startCall('voice') }
   else if(a === 'videocall'){ startCall('video') }
   else if(a === 'sticker'){ toggleStickerPanel() }
   else if(a === 'mind'){ showMindCard() }
 }
-function sendRedPacket(amt){
-  const id = uid('rp')
-  addMsg(activeChatId, { id, sender:'me', type:'redpacket', text: String(amt), opened:false })
-  // char 领取
-  setTimeout(() => {
-    const msgs = getMsgs(activeChatId); const m = msgs.find(x => x.id === id)
-    if(m){ m.opened = true; setMsgs(activeChatId, msgs); renderChatDetail() }
-    const chat = getChats().find(c => c.id === activeChatId); const char = chat ? getCharByName(chat.name) : null
-    addMsg(activeChatId, { sender:'char', type:'text', text: char ? `谢谢你的红包，${amt} 元我收到啦。` : '红包已领取。' })
-  }, 1200)
+function transferCard(){
+  showModal({ title:'转账', body:`<div class="pay-card"><div class="pay-amt"><span>¥</span><input id="trAmt" type="number" placeholder="0.00"></div><div class="pay-to">转账给 ${esc((getChats().find(c=>c.id===activeChatId)||{}).name||'对方')}</div></div>`, actions:[{label:'取消', cls:'btn btn-secondary'},{label:'转账', cls:'btn', onOk(){ const amt = Number(qs('#trAmt').value||0).toFixed(2); if(amt<=0){ toast('请输入金额'); return }; addMsg(activeChatId, { sender:'me', type:'transfer', text:amt }); closeModal() }}] })
+}
+function redPacketCard(){
+  showModal({ title:'发红包', body:`<div class="pay-card"><div class="pay-amt"><span>¥</span><input id="rpAmt" type="number" placeholder="0.00"></div><div class="pay-sub">单个金额</div><div class="field" style="margin-top:10px"><label>祝福语</label><input id="rpNote" value="恭喜发财，大吉大利"></div></div>`, actions:[{label:'取消', cls:'btn btn-secondary'},{label:'塞钱进红包', cls:'btn', onOk(){ const amt = qs('#rpAmt').value.trim(); if(!amt || Number(amt)<=0){ toast('请输入金额'); return }; addMsg(activeChatId, { sender:'me', type:'redpacket', text:amt, opened:false }); closeModal() }}] })
+}
+function locationCard(){
+  showModal({ title:'发送位置', body:`<div class="field"><label>位置名称</label><input id="locName" placeholder="例如：会展中心 · 2号门"></div><div class="field"><label>详细地址</label><input id="locAddr" placeholder="街道、门牌号等"></div>`, actions:[{label:'取消', cls:'btn btn-secondary'},{label:'发送', cls:'btn', onOk(){ const name = qs('#locName').value.trim(); if(!name){ toast('请输入位置'); return }; addMsg(activeChatId, { sender:'me', type:'location', text:name }); closeModal() }}] })
 }
 function pickImage(cb){
   const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*'
@@ -621,11 +649,11 @@ function showMindCard(){
   if(!target){ toast('请先创建角色'); return }
   const mood = target.mood || '平静'
   const status = (target.readNoReply ? '已读不回' : '在线') + (target.timeSense ? ' · 时间感知' : '')
-  const monologue = target.monologue || generateMonologue(target)
+  const monologue = target.currentMind || target.monologue || generateMonologue(target)
   const overlay = document.createElement('div')
   overlay.className = 'mind-overlay'
   overlay.innerHTML = `<div class="mind-card">
-    <div class="mind-avatar icon-character">${esc((target.name||'?')[0])}</div>
+    ${avatarHTML(target,'mind-avatar icon-character')}
     <div class="mind-name">${esc(target.name)} 的心声</div>
     <div class="mind-meta"><span class="mind-mood">心情：${esc(mood)}</span><span class="mind-status">状态：${esc(status)}</span></div>
     <div class="mind-text">${esc(monologue)}</div>
@@ -801,8 +829,8 @@ function renderCharacter(){
     const wbCount = (c.worldbooks||[]).length + (c.residentWorldbooks||[]).length
     return `<div class="char-card-big ${c.id===ac?'active':''}">
       ${c.id===ac ? '<div class="cc-badge">使用中</div>' : ''}
-      <div class="cc-head"><div class="cc-avatar icon-character">${esc((c.name||'?')[0])}</div><div><div class="cc-name">${esc(c.name)}</div><div class="cc-tags">${esc((c.tags||[]).join('、')||'无标签')} · ${wbCount} 本世界书</div></div></div>
-      <div class="cc-persona">${esc(c.persona||'未填写人设')}</div>
+      <div class="cc-head">${avatarHTML(c,'cc-avatar icon-character')}<div><div class="cc-name">${esc(c.name)}</div><div class="cc-tags">${esc((c.tags||[]).join('、')||'无标签')} · ${wbCount} 本世界书</div></div></div>
+      <div class="cc-persona">${esc(trunc(c.persona||'未填写人设',60))}</div>
       <div class="cc-actions">
         <button class="btn btn-sm" data-use="${c.id}">${c.id===ac?'当前角色':'设为当前'}</button>
         <button class="btn btn-sm btn-secondary" data-edit="${c.id}">编辑</button>
@@ -825,9 +853,12 @@ function charForm(id){
     <div class="field"><label>角色名</label><input id="cfName" value="${esc(c?.name||'')}"></div>
     <div class="field"><label>人设（性格/背景/经历）</label><textarea id="cfPersona" rows="3">${esc(c?.persona||'')}</textarea></div>
     <div class="field"><label>标签（顿号分隔）</label><input id="cfTags" value="${esc((c?.tags||[]).join('、'))}"></div>
-    <div class="field"><label>头像（可上传图片）</label><input type="file" id="cfAvatar" accept="image/*"></div>
+    <div class="field"><label>头像（可上传图片）</label><input type="file" id="cfAvatar" accept="image/*">${c?.avatar?'<div class="hint">已设置头像，重新上传可替换</div>':''}</div>
     <div class="field"><label>心情</label><input id="cfMood" value="${esc(c?.mood||'')}" placeholder="例如：平静、想念、期待"></div>
     <div class="field"><label>心声（约100字内心独白）</label><textarea id="cfMonologue" rows="3">${esc(c?.monologue||'')}</textarea></div>
+    <div class="field"><label>气泡颜色</label><input type="color" id="cfBubble" value="${esc(c?.bubbleColor||'#26292f')}"></div>
+    <div class="field"><label>聊天背景（文件）</label><input type="file" id="cfBg" accept="image/*"></div>
+    <div class="field"><label>聊天背景 URL</label><input id="cfBgUrl" value="${esc(c?.chatBgUrl||'')}"></div>
     <div class="guard-box"><div class="guard-title">防串味 / 防人设混淆</div>
       <div class="field"><label>说话口吻</label><input id="cfSpeech" value="${esc(c?.guard?.speechStyle||'')}" placeholder="例如：温柔克制、短句、留白"></div>
       <div class="field"><label>绝对禁止提及（顿号分隔）</label><input id="cfForbidden" value="${esc((c?.guard?.forbiddenTopics||[]).join('、'))}"></div>
@@ -843,22 +874,28 @@ function charForm(id){
       const name = qs('#cfName').value.trim(); if(!name){ toast('请输入角色名'); return }
       const avatarFile = qs('#cfAvatar').files[0]
       const doSave = (avatarDataUrl) => {
-        const data = {
-          name, persona: qs('#cfPersona').value.trim(),
-          tags: qs('#cfTags').value.split('、').map(t=>t.trim()).filter(Boolean),
-          mood: qs('#cfMood').value.trim(),
-          monologue: qs('#cfMonologue').value.trim(),
-          avatar: avatarDataUrl || c?.avatar,
-          guard: { speechStyle: qs('#cfSpeech').value.trim(), forbiddenTopics: qs('#cfForbidden').value.split('、').map(t=>t.trim()).filter(Boolean), negativePrompts: qs('#cfNegative').value.trim() },
-          worldbooks: qsa('#cfWb input:checked').map(i => i.value),
-          residentWorldbooks: qsa('#cfWbResident input:checked').map(i => i.value),
-          onlineStyle: qs('#cfOnlineStyle').value, offlineStyle: qs('#cfOfflineStyle').value,
-          readNoReply: c?.readNoReply || false, timeSense: c?.timeSense !== false,
-        }
-        const chars = getCharacters()
-        if(c){ const idx = chars.findIndex(x => x.id === c.id); chars[idx] = { ...c, ...data } }
-        else { data.id = uid('char'); chars.push(data); setActiveChar(data.id) }
-        setCharacters(chars); renderCharacter(); closeModal()
+        const readBg = (cb) => { const bf = qs('#cfBg').files[0]; if(!bf) return cb(null); const r = new FileReader(); r.onload = () => cb(r.result); r.readAsDataURL(bf) }
+        readBg(bgDataUrl => {
+          const data = {
+            name, persona: qs('#cfPersona').value.trim(),
+            tags: qs('#cfTags').value.split('、').map(t=>t.trim()).filter(Boolean),
+            mood: qs('#cfMood').value.trim(),
+            monologue: qs('#cfMonologue').value.trim(),
+            bubbleColor: qs('#cfBubble').value,
+            avatar: avatarDataUrl || c?.avatar,
+            chatBg: bgDataUrl || c?.chatBg,
+            chatBgUrl: qs('#cfBgUrl').value.trim(),
+            guard: { speechStyle: qs('#cfSpeech').value.trim(), forbiddenTopics: qs('#cfForbidden').value.split('、').map(t=>t.trim()).filter(Boolean), negativePrompts: qs('#cfNegative').value.trim() },
+            worldbooks: qsa('#cfWb input:checked').map(i => i.value),
+            residentWorldbooks: qsa('#cfWbResident input:checked').map(i => i.value),
+            onlineStyle: qs('#cfOnlineStyle').value, offlineStyle: qs('#cfOfflineStyle').value,
+            readNoReply: c?.readNoReply || false, timeSense: c?.timeSense !== false,
+          }
+          const chars = getCharacters()
+          if(c){ const idx = chars.findIndex(x => x.id === c.id); chars[idx] = { ...c, ...data } }
+          else { data.id = uid('char'); chars.push(data); setActiveChar(data.id) }
+          setCharacters(chars); renderCharacter(); closeModal(); toast('已保存')
+        })
       }
       if(avatarFile){ const r = new FileReader(); r.onload = () => doSave(r.result); r.readAsDataURL(avatarFile) }
       else doSave(null)
@@ -896,9 +933,9 @@ function renderWbList(el){
   el.innerHTML = wbs.map(w => `
     <div class="wb-item">
       <div class="wb-top"><div class="wb-name">${esc(w.name)}</div><label class="switch" title="是否常驻"><input type="checkbox" data-resident="${w.id}" ${w.resident?'checked':''}><span class="slider"></span></label></div>
-      <div class="wb-content">${esc(w.content)}</div>
-      <div class="wb-meta"><span>${w.resident?'常驻':'非驻留'}</span><span>优先级 ${w.priority}</span><span>${esc(w.source||'import')}</span></div>
-      <div class="wb-actions"><button class="btn btn-sm btn-secondary" data-edit="${w.id}">编辑</button><button class="btn btn-sm" data-up="${w.id}">优先级 ↑</button><button class="btn btn-sm btn-ghost" data-del="${w.id}">删除</button></div>
+      <div class="wb-content">${esc(trunc(w.content, 80))}</div>
+      <div class="wb-meta"><span>${w.resident?'常驻':'非驻留'}</span><span>优先级 ${w.priority}</span><span>${w.content.length} 字</span></div>
+      <div class="wb-actions"><button class="btn btn-sm btn-secondary" data-edit="${w.id}">查看/编辑</button><button class="btn btn-sm" data-up="${w.id}">优先级 ↑</button><button class="btn btn-sm btn-ghost" data-del="${w.id}">删除</button></div>
     </div>`).join('') || '<div class="empty">暂无世界书，请导入</div>'
   qsa('[data-resident]', el).forEach(i => i.onchange = () => { const w = getWorldbooks().find(x => x.id === i.dataset.resident); w.resident = i.checked; setWorldbooks(getWorldbooks()); renderWbList(el) })
   qsa('[data-edit]', el).forEach(b => b.onclick = () => wbForm(b.dataset.edit))
@@ -917,7 +954,7 @@ function renderStyle(){
   body.innerHTML = styles.map(s => `
     <div class="wb-item">
       <div class="wb-top"><div class="wb-name">${esc(s.name)}</div><span class="chip ${s.mode==='offline'?'active':''}" style="font-size:10px;padding:3px 9px">${s.mode==='offline'?'线下':'线上'}</span></div>
-      <div class="wb-content">${esc(s.scene||'')}${s.scene?' · ':''}${esc(s.content)}</div>
+      <div class="wb-content">${esc(trunc((s.scene||'')+(s.scene?' · ':'')+s.content, 80))}</div>
       <div class="wb-actions"><button class="btn btn-sm btn-secondary" data-edit="${s.id}">编辑</button><button class="btn btn-sm" data-toggle="${s.id}">${s.mode==='offline'?'转线上':'转线下'}</button><button class="btn btn-sm btn-ghost" data-del="${s.id}">删除</button></div>
     </div>`).join('') || '<div class="empty">暂无文风，点右上角 + 新建</div>'
   qsa('[data-edit]', body).forEach(b => b.onclick = () => styleForm(b.dataset.edit))
@@ -1050,8 +1087,9 @@ function renderTaskList(el){
 }
 function renderItems(el){
   const items = [ { name:'早安吻', icon:'吻', cost:20, cls:'icon-couple' }, { name:'拥抱券', icon:'抱', cost:30, cls:'icon-checkphone' }, { name:'一起看电影', icon:'影', cost:50, cls:'icon-music' }, { name:'晚安语音', icon:'晚', cost:25, cls:'icon-character' }, { name:'专属情书', icon:'书', cost:80, cls:'icon-worldbook' }, { name:'秘密约会', icon:'约', cost:100, cls:'icon-reading' } ]
-  el.innerHTML = items.map(it => `<div class="sweet-item"><div class="si-icon ${it.cls}">${it.icon}</div><div class="si-name">${it.name}</div><div class="si-cost">${it.cost} 积分</div></div>`).join('')
-  qsa('.sweet-item', el).forEach((n,i) => n.onclick = () => { const it = items[i]; if(getPoints() >= it.cost){ setPoints(getPoints() - it.cost); toast(`已兑换「${it.name}」`); renderCouple() } else toast('积分不足') })
+  let itemPage = 1
+  const draw = () => { const pg = paginate(items, itemPage, 6); el.innerHTML = pg.items.map(it => `<div class="sweet-item"><div class="si-icon ${it.cls}">${it.icon}</div><div class="si-name">${it.name}</div><div class="si-cost">${it.cost} 积分</div></div>`).join('') + `<div id="itemPager" style="grid-column:1/-1"></div>`; const pagerEl = qs('#itemPager'); if(pagerEl) pagerEl.innerHTML = pagerHTML(pg, p => { itemPage = p; draw() }); qsa('.sweet-item', el).forEach((n,i) => n.onclick = () => { const it = pg.items[i]; if(getPoints() >= it.cost){ setPoints(getPoints() - it.cost); toast(`已兑换「${it.name}」`); renderCouple() } else toast('积分不足') }) }
+  draw()
 }
 
 // ============ 查看手机（拟真） ============
@@ -1093,7 +1131,7 @@ function openCharApp(appId, char){
   let content = ''
   if(appId === 'notes') content = `<div class="section-title">ta 的便签</div>` + charNotes(cName, pName).map(n => `<div class="diary-item"><div class="d-date">${esc(n.time)}</div><div class="d-text">${esc(n.text)}</div></div>`).join('')
   else if(appId === 'diary') content = `<div class="section-title">ta 的日记</div>` + charDiary(cName, pName).map(d => `<div class="diary-item"><div class="d-date">${esc(d.date)}</div><div class="d-text">${esc(d.text)}</div></div>`).join('')
-  else if(appId === 'wechat') content = `<div class="section-title">ta 的微信会话</div>` + charWechat(cName, pName).map(c => `<div class="list-item"><div class="item-icon icon-character">${esc((c.name||'?')[0])}</div><div class="item-body"><div class="item-title">${esc(c.name)}</div><div class="item-sub">${esc(c.last)}</div></div></div>`).join('')
+  else if(appId === 'wechat') content = renderCharWechat(char, pName)
   else if(appId === 'gallery') content = `<div class="section-title">ta 的相册</div><div class="item-grid" style="grid-template-columns:repeat(3,1fr)">` + [1,2,3,4,5,6].map(i => `<div class="sweet-item"><div class="si-icon icon-photos">${i}</div><div class="si-name" style="font-size:10px">照片 ${i}</div></div>`).join('') + `</div>`
   else if(appId === 'messages') content = `<div class="section-title">ta 的短信</div>` + charMessages(cName, pName).map(m => `<div class="list-item"><div class="item-body"><div class="item-title">${esc(m.from)}</div><div class="item-sub">${esc(m.text)}</div></div></div>`).join('')
   else if(appId === 'contacts') content = `<div class="section-title">ta 的通讯录</div>` + ['妈妈','最好的朋友','同事小陈', pName].map(n => `<div class="list-item"><div class="item-icon icon-character">${esc(n[0])}</div><div class="item-body"><div class="item-title">${esc(n)}</div></div></div>`).join('')
@@ -1122,6 +1160,21 @@ function charWechat(cName, pName){
     { name:'朋友', last:'「周末有空吗？」' }
   ]
 }
+// 实时抓包：char 的微信显示与 user 的真实对话
+function renderCharWechat(char, pName){
+  const charId = char ? char.id : null
+  const msgs = charId ? getMsgs(charId) : []
+  const recent = msgs.slice(-8)
+  const chatRows = recent.map(m => `<div class="list-item"><div class="item-icon icon-character">${esc((m.sender==='me'?pName:char?.name||'ta')[0])}</div><div class="item-body"><div class="item-title">${esc(m.sender==='me'?pName:char?.name)}</div><div class="item-sub">${esc(msgPreview(m))}</div></div></div>`).join('')
+  const sendBtn = `<button class="btn btn-block btn-secondary" id="charSendMsg">代替 ta 发送消息</button>`
+  const html = `<div class="section-title">ta 的微信（抓包：与你实时对话）</div>` + (chatRows || '<div class="empty">还没有和 ta 聊天</div>') + sendBtn
+  setTimeout(() => { const b = qs('#charSendMsg'); if(b) b.onclick = () => sendAsChar(char, pName) }, 0)
+  return html
+}
+function sendAsChar(char, pName){
+  if(!char){ toast('暂无角色'); return }
+  showModal({ title:`代替 ${char.name} 发送`, body:`<textarea id="saText" rows="3" placeholder="以 ta 的口吻输入..."></textarea>`, actions:[{label:'发送', cls:'btn btn-block', onOk(){ const t = qs('#saText').value.trim(); if(!t){ toast('请输入'); return }; addMsg(char.id, { sender:'char', type:'text', text:t }); closeModal(); renderCheckPhone(); toast('已以 ta 的身份发送') }}] })
+}
 function charMessages(cName, pName){
   return [ { from:pName, text:'到家了吗？' }, { from:'10086', text:'您的话费余额已不足' }, { from:'快递', text:'包裹已到驿站' } ]
 }
@@ -1132,20 +1185,17 @@ function reverseCheckPhone(){
       <div class="pm-status"><span>09:41</span><div class="pm-status-icons">●●●</div></div>
       <div class="pm-apps">${checkApps().slice(0,8).map(a => `<div class="pm-app"><div class="pm-icon ${a.cls}">${a.icon}</div><span>${a.name}</span></div>`).join('')}</div>
     </div>
-    <div class="section-title">你的便签</div>
-    <div class="diary-item"><div class="d-text">${esc(p?.persona||'还没有写人设，去设置里补全吧')}</div></div>`, actions:[{label:'关闭', cls:'btn btn-block'}] })
+    <div class="section-title">你与 ta 的最近对话（实时）</div>
+    <div id="revChat"></div>`, actions:[{label:'关闭', cls:'btn btn-block'}] })
+  const char = currentChar()
+  const msgs = char ? getMsgs(char.id).slice(-6) : []
+  const rev = qs('#revChat')
+  rev.innerHTML = msgs.length ? msgs.map(m => `<div class="list-item"><div class="item-body"><div class="item-title">${esc(m.sender==='me'?'你':char?.name)}</div><div class="item-sub">${esc(msgPreview(m))}</div></div></div>`).join('') : '<div class="empty">还没有对话内容</div>'
 }
 
-// ============ 商城 ============
+// ============ 商城（分页） ============
 function renderShop(){
-  const body = qs('#shopBody')
-  body.innerHTML = `
-    <div class="shop-banner">晓梦商城 · 精选好物</div>
-    <div class="card"><div class="field"><label>导入商城 HTML</label><input type="file" id="shopFileInput" accept="text/html"></div></div>
-    <div class="section-title">商品分类</div>
-    <div class="shop-items" id="shopItems"></div>
-  `
-  qs('#shopFileInput').onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { store.rawSet('shopHtml', r.result); toast('商城 HTML 已导入') }; r.readAsText(f) }
+  const body = qs('#shopBody'); let shopPage = 1
   const products = [
     { name:'定制情侣头像', price:'9.9', icon:'像', cls:'icon-couple' },
     { name:'专属情书模板', price:'6.6', icon:'书', cls:'icon-worldbook' },
@@ -1153,58 +1203,71 @@ function renderShop(){
     { name:'专属来电铃声', price:'12.0', icon:'铃', cls:'icon-music' },
     { name:'纪念日相册', price:'29.9', icon:'册', cls:'icon-photos' },
     { name:'语音祝福', price:'15.0', icon:'语', cls:'icon-character' },
+    { name:'情侣手链', price:'39.9', icon:'链', cls:'icon-couple' },
+    { name:'定制壁纸', price:'8.8', icon:'纸', cls:'icon-photos' },
   ]
-  qs('#shopItems').innerHTML = products.map(p => `<div class="shop-product"><div class="sp-img ${p.cls}">${p.icon}</div><div class="sp-body"><div class="sp-name">${p.name}</div><div class="sp-price">¥${p.price}</div><button class="btn btn-sm btn-block" data-buy="${p.name}">加入购物车</button></div></div>`).join('')
-  qsa('[data-buy]', body).forEach(b => b.onclick = () => toast(`已加入购物车：${b.dataset.buy}`))
+  body.innerHTML = `<div class="shop-banner">晓梦商城 · 精选好物</div><div class="card"><div class="field"><label>导入商城 HTML</label><input type="file" id="shopFileInput" accept="text/html"></div></div><div class="section-title">商品分类</div><div class="shop-items" id="shopItems"></div><div id="shopPager"></div>`
+  qs('#shopFileInput').onchange = e => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { store.rawSet('shopHtml', r.result); toast('商城 HTML 已导入') }; r.readAsText(f) }
+  const draw = () => { const pg = paginate(products, shopPage, 6); qs('#shopItems').innerHTML = pg.items.map(p => `<div class="shop-product"><div class="sp-img ${p.cls}">${p.icon}</div><div class="sp-body"><div class="sp-name">${p.name}</div><div class="sp-price">¥${p.price}</div><button class="btn btn-sm btn-block" data-buy="${p.name}">加入购物车</button></div></div>`).join(''); qs('#shopPager').innerHTML = pagerHTML(pg, p => { shopPage = p; draw() }); qsa('[data-buy]', qs('#shopItems')).forEach(b => b.onclick = () => toast(`已加入购物车：${b.dataset.buy}`)) }
+  draw()
 }
 
-// ============ 线下（原酒馆） ============
+// ============ 线下（沉浸长文模式） ============
 function renderOffline(){
   const body = qs('#tavernBody')
   const chars = getCharacters()
   const wbs = getWorldbooks()
   const styles = getStyles().filter(s => s.mode !== 'online')
   body.innerHTML = `
-    <div class="offline-hero"><div class="oh-title">线下 · 酒馆</div><div class="oh-sub">灯光微黄，故事开场</div></div>
+    <div class="offline-hero"><div class="oh-title">线下 · 沉浸对话</div><div class="oh-sub">完整世界书挂载，长文输出模式</div></div>
     <div class="card">
       <div class="field"><label>挂载世界书（多选）</label><div id="tvWb"></div></div>
       <div class="field"><label>选择文风</label><select id="tvStyle">${styles.map(s => `<option value="${s.id}">${esc(s.name)}</option>`).join('') || '<option value="">暂无文风</option>'}</select></div>
+      <div class="field"><label>对话模式</label><select id="tvMode"><option value="long">长文模式（详细描写）</option><option value="short">短文模式（简洁对话）</option></select></div>
       <div class="field"><label>在场角色</label><div class="character-grid" id="tvChars" style="grid-template-columns:repeat(3,1fr)"></div></div>
     </div>
     <div id="tvChatArea" style="display:none">
-      <div class="chat-header-inline"><div class="avatar icon-tavern" id="tvAvatar">馆</div><div><div id="tvName" style="font-weight:600">酒馆</div><div class="chat-status" id="tvStatus" style="font-size:12px;color:var(--muted)">灯光微黄，等你开口</div></div></div>
+      <div class="chat-header-inline"><div class="avatar icon-tavern" id="tvAvatar">下</div><div><div id="tvName" style="font-weight:600">线下</div><div class="chat-status" id="tvStatus" style="font-size:12px;color:var(--muted)">等待开场</div></div></div>
       <div class="message-list" id="tvMessages" style="height:300px"></div>
-      <div class="tavern-composer"><input id="tvInput" placeholder="输入动作或对话..."><button class="btn" id="tvSend">发送</button></div>
+      <div class="tavern-composer"><textarea id="tvInput" placeholder="输入动作、对话或场景描述（长文）..."></textarea><button class="btn" id="tvSend">发送</button></div>
     </div>
   `
   const wbBox = qs('#tvWb')
   wbBox.innerHTML = wbs.map(w => `<div style="display:flex;align-items:center;gap:8px;padding:5px 0"><input type="checkbox" value="${w.id}"><span style="font-size:13px">${esc(w.name)}${w.resident?' (常驻)':''}</span></div>`).join('') || '<div class="hint">暂无世界书</div>'
   const charGrid = qs('#tvChars')
   charGrid.innerHTML = chars.map(c => `<div class="char-card" data-char="${c.id}"><div class="char-avatar icon-character">${esc((c.name||'?')[0])}</div><div class="char-name">${esc(c.name)}</div></div>`).join('') || '<div class="hint">暂无角色</div>'
-  qsa('[data-char]', charGrid).forEach(c => c.onclick = () => enterTavern(c.dataset.char))
-  qs('#tvSend').onclick = tavernSend
-  qs('#tvInput').onkeydown = e => { if(e.key === 'Enter'){ e.preventDefault(); tavernSend() } }
+  qsa('[data-char]', charGrid).forEach(c => c.onclick = () => enterOffline(c.dataset.char))
+  qs('#tvSend').onclick = offlineSend
+  qs('#tvInput').onkeydown = e => { if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); offlineSend() } }
 }
-function enterTavern(charId){
+function enterOffline(charId){
   const c = getChar(charId)
   qs('#tvChatArea').style.display = 'block'
-  qs('#tvAvatar').textContent = (c?.name||'馆')[0]
+  qs('#tvAvatar').textContent = (c?.name||'下')[0]
   qs('#tvName').textContent = c?.name
-  qs('#tvStatus').textContent = c?.desc || c?.monologue?.slice(0,20) || '灯光微黄，等你开口'
-  memorySet('tavernChar', charId)
-  renderTavernMsgs()
+  qs('#tvStatus').textContent = c?.monologue?.slice(0,20) || '等待开场'
+  memorySet('offlineChar', charId)
+  renderOfflineMsgs()
 }
-function renderTavernMsgs(){
-  const msgs = store.get('tavernMsgs', [])
+function renderOfflineMsgs(){
+  const msgs = store.get('offlineMsgs', [])
   const list = qs('#tvMessages')
-  list.innerHTML = msgs.map(m => `<div class="msg ${m.sender==='me'?'me':'char'}"><div class="bubble">${esc(m.text)}</div></div>`).join('')
+  list.innerHTML = msgs.map(m => `<div class="msg ${m.sender==='me'?'me':'char'}"><div class="bubble" style="white-space:pre-wrap">${esc(m.text)}</div></div>`).join('')
   list.scrollTop = list.scrollHeight
 }
-function tavernSend(){
+function offlineSend(){
   const input = qs('#tvInput'); const text = input.value.trim(); if(!text) return
-  const msgs = store.get('tavernMsgs', []); msgs.push({ id:uid('t'), sender:'me', text, time:now() }); store.set('tavernMsgs', msgs); input.value = ''; renderTavernMsgs()
-  const c = getChar(memory('tavernChar'))
-  setTimeout(() => { const msgs2 = store.get('tavernMsgs', []); msgs2.push({ id:uid('t'), sender:'char', text: c ? `${c.name}微微侧头：「${text}……这倒是有点意思。」` : '酒保擦着杯子，等你开口。', time:now() }); store.set('tavernMsgs', msgs2); renderTavernMsgs() }, 700)
+  const mode = qs('#tvMode').value
+  const msgs = store.get('offlineMsgs', []); msgs.push({ id:uid('t'), sender:'me', text, time:now() }); store.set('offlineMsgs', msgs); input.value = ''; renderOfflineMsgs()
+  const c = getChar(memory('offlineChar'))
+  const wbNames = qsa('#tvWb input:checked').map(i => { const w = getWorldbooks().find(x => x.id === i.value); return w ? w.name : '' }).filter(Boolean)
+  setTimeout(() => {
+    const msgs2 = store.get('offlineMsgs', [])
+    const longReply = c ? `${c.name}缓缓抬起头，目光落在你身上。${wbNames.length ? '（已挂载世界书：' + wbNames.join('、') + '）' : ''}\n\n「${trunc(text,40)}……」${c.name}斟酌着开口，声音不大，却像带着温度。` : '这里静悄悄的，等你开口。'
+    const shortReply = c ? `${c.name}：「${trunc(text,20)}……继续说。」` : '在听。'
+    msgs2.push({ id:uid('t'), sender:'char', text: mode === 'long' ? longReply : shortReply, time:now() })
+    store.set('offlineMsgs', msgs2); renderOfflineMsgs()
+  }, 800)
 }
 
 // ============ 同人文/共读 ============
@@ -1244,14 +1307,47 @@ function openPost(id){
   container.innerHTML = `<div class="app-screen"><header class="app-header"><button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button><h1 class="header-title">问题详情</h1><span class="header-spacer"></span></header><div class="app-body" id="postBody"></div></div>`
   qs('[data-action="back"]').onclick = () => goBack()
   const body = qs('#postBody')
-  body.innerHTML = `<div class="card"><h3>${esc(p.title)}</h3><p style="font-size:14px;color:var(--text-2);line-height:1.6">${esc(p.body||'')}</p></div><div class="section-title">回答</div>${(p.answers||[]).map(a => `<div class="zh-answer"><div class="za-author"><div class="za-avatar icon-character">${esc((a.author||'?')[0])}</div><div class="za-name">${esc(a.author)}</div></div><div class="za-text">${esc(a.text)}</div></div>`).join('') || '<div class="empty">暂无回答</div>'}<button class="btn btn-block btn-secondary" id="answerBtn">写回答</button>`
-  qs('#answerBtn').onclick = () => showModal({ title:'写回答', body:`<textarea id="ansText" rows="4" placeholder="写下你的回答..."></textarea>`, actions:[{label:'提交', cls:'btn btn-block', onOk(){ const t = qs('#ansText').value.trim(); if(!t) return; const prof = currentProfile(); p.answers = p.answers||[]; p.answers.push({ author: prof?.name||'匿名', text:t }); setPosts(getPosts()); openPost(id); closeModal() }}] })
+  const renderAns = () => { qs('#ansList').innerHTML = (p.answers||[]).map(a => `<div class="zh-answer"><div class="za-author"><div class="za-avatar icon-character">${esc((a.author||'?')[0])}</div><div class="za-name">${esc(a.author)}</div></div><div class="za-text">${esc(a.text)}</div></div>`).join('') || '<div class="empty">暂无回答</div>' }
+  body.innerHTML = `<div class="card"><h3>${esc(p.title)}</h3><p style="font-size:14px;color:var(--text-2);line-height:1.6">${esc(p.body||'')}</p></div><div class="section-title">回答 (${(p.answers||[]).length})</div><div id="ansList"></div>
+    <div class="card" style="margin-top:14px"><h3>生成回答</h3>
+      <div class="field"><label>回答数量</label><select id="genCount"><option>1</option><option>2</option><option selected>3</option><option>5</option></select></div>
+      <div class="field"><label>回答类型</label><select id="genType"><option value="char">角色视角</option><option value="neutral">中立分析</option><option value="user">用户视角</option></select></div>
+      <button class="btn btn-block" id="genAnswers">生成回答</button>
+      <button class="btn btn-block btn-secondary" id="answerBtn" style="margin-top:8px">手动写回答</button>
+    </div>`
+  renderAns()
+  qs('#genAnswers').onclick = () => generateAnswers(p, Number(qs('#genCount').value), qs('#genType').value, renderAns)
+  qs('#answerBtn').onclick = () => showModal({ title:'写回答', body:`<textarea id="ansText" rows="4" placeholder="写下你的回答..."></textarea>`, actions:[{label:'提交', cls:'btn btn-block', onOk(){ const t = qs('#ansText').value.trim(); if(!t) return; const prof = currentProfile(); p.answers = p.answers||[]; p.answers.push({ author: prof?.name||'匿名', text:t }); setPosts(getPosts()); renderAns(); closeModal() }}] })
+}
+function generateAnswers(p, count, type, cb){
+  const chars = getCharacters()
+  const prof = currentProfile()
+  const pool = type === 'char' ? (chars.length ? chars.map(c => ({ author:c.name, text:`${c.persona ? trunc(c.persona,30) + '。' : ''}关于「${trunc(p.title,20)}」，我的看法其实很简单——心里早就有答案，只是还没说出口。` })) : [{ author:'匿名角色', text:'关于这个问题，我的看法是……' }])
+    : type === 'user' ? [{ author: prof?.name||'你', text:'作为亲历者，我想说的是：答案往往藏在不经意的瞬间里。' }]
+    : [{ author:'理性分析者', text:'从客观角度看，这个问题需要拆解成几个层面来思考。' }, { author:'观察者', text:'我注意到一些细节，或许能提供不同的视角。' }]
+  for(let i=0;i<count;i++){ const tpl = pool[i % pool.length]; p.answers = p.answers||[]; p.answers.push({ author: tpl.author, text: tpl.text + '（第' + (i+1) + '条回答）' }) }
+  setPosts(getPosts()); cb(); toast('已生成 ' + count + ' 条回答')
 }
 function askQuestion(){
   showModal({ title:'提问', body:`<div class="field"><label>标题</label><input id="qTitle"></div><div class="field"><label>问题描述</label><textarea id="qBody" rows="3"></textarea></div>`, actions:[{label:'发布', cls:'btn btn-block', onOk(){ const t = qs('#qTitle').value.trim(); if(!t) return; const posts = getPosts(); posts.unshift({ id:uid('p'), title:t, body: qs('#qBody').value.trim(), likes:0, answers:[], time:now() }); setPosts(posts); renderForum(); closeModal() }}] })
 }
 
 // ============ 弹窗/Toast ============
+function paginate(arr, page, size){
+  size = size || 10
+  const pages = Math.max(1, Math.ceil(arr.length / size))
+  page = Math.min(Math.max(1, page), pages)
+  return { items: arr.slice((page-1)*size, page*size), page, pages, total: arr.length }
+}
+function pagerHTML(pg, onClick){
+  if(pg.pages <= 1) return ''
+  let h = '<div class="pager">'
+  h += `<button class="pg-btn" data-pg="${pg.page-1}" ${pg.page<=1?'disabled':''}>‹</button>`
+  for(let i=1;i<=pg.pages;i++) h += `<button class="pg-btn ${i===pg.page?'active':''}" data-pg="${i}">${i}</button>`
+  h += `<button class="pg-btn" data-pg="${pg.page+1}" ${pg.page>=pg.pages?'disabled':''}>›</button></div>`
+  setTimeout(() => { qsa('.pg-btn').forEach(b => b.onclick = () => onClick(Number(b.dataset.pg))) }, 0)
+  return h
+}
 function showModal(opts){
   const overlay = document.createElement('div')
   overlay.className = 'modal-overlay'
