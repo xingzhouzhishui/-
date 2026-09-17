@@ -1,0 +1,479 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<title>iOS 18 拟真物理沙盒</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+  :root{
+    --shell-w: 400px;
+    --shell-h: 844px;
+    --shell-r: 54px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:#0b0c0e;color:#fff;font-family:-apple-system,'SF Pro Text','PingFang SC','Microsoft YaHei',sans-serif;-webkit-font-smoothing:antialiased;overflow:hidden}
+  #app{height:100%}
+
+  /* ============ 舞台 ============ */
+  .stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 0%, #1a1d22 0%, #0b0c0e 60%)}
+
+  /* ============ 手机物理外壳 ============ */
+  .shell{
+    position:relative;width:var(--shell-w);height:var(--shell-h);
+    background:#000;border-radius:var(--shell-r);
+    box-shadow:
+      0 0 0 2px #2a2c30,
+      0 0 0 4px #3a3d42,
+      inset 0 0 0 1px #000,
+      0 20px 60px rgba(0,0,0,0.55),
+      0 40px 110px rgba(0,0,0,0.4);
+    overflow:hidden;flex-shrink:0;
+  }
+  /* 侧边物理按键 */
+  .btn-hardware{position:absolute;z-index:9999;background:#3a3d42;border:1px solid #4a4d52}
+  .btn-mute{left:-3px;top:130px;width:3px;height:30px;border-radius:2px 0 0 2px}
+  .btn-vol-up{left:-3px;top:190px;width:3px;height:52px;border-radius:2px 0 0 2px}
+  .btn-vol-down{left:-3px;top:252px;width:3px;height:52px;border-radius:2px 0 0 2px}
+  .btn-power{right:-3px;top:210px;width:3px;height:86px;border-radius:0 2px 2px 0}
+  .btn-action{right:-3px;top:120px;width:3px;height:24px;border-radius:0 2px 2px 0}
+
+  /* ============ 灵动岛 ============ */
+  .dynamic-island{
+    position:absolute;top:12px;left:50%;transform:translateX(-50%);
+    width:122px;height:34px;background:#000;border-radius:20px;z-index:1000;
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,0.05);
+    display:flex;align-items:center;justify-content:flex-end;padding-right:10px;
+  }
+  .dynamic-island .cam{
+    width:12px;height:12px;border-radius:50%;
+    background:radial-gradient(circle at 35% 35%, #1a2a3a, #05080c);
+    box-shadow:inset 0 0 2px rgba(80,140,200,0.6);
+  }
+
+  /* ============ 屏幕内容区 ============ */
+  .screen{position:absolute;inset:0;border-radius:var(--shell-r);overflow:hidden;display:flex;flex-direction:column}
+
+  /* ============ 状态栏 ============ */
+  .statusbar{
+    position:relative;z-index:800;display:flex;justify-content:space-between;align-items:center;
+    padding:16px 30px 6px;font-size:14px;font-weight:600;letter-spacing:.2px;
+    transition:color .3s;flex-shrink:0;
+  }
+  .statusbar .time{min-width:52px}
+  .status-icons{display:flex;align-items:center;gap:6px}
+  .status-icons svg{display:block}
+  .battery-shell{width:25px;height:12px;border:1px solid currentColor;border-radius:3.5px;padding:1px;position:relative;opacity:.9}
+  .battery-shell::after{content:'';position:absolute;right:-4px;top:3px;width:2px;height:5px;background:currentColor;border-radius:0 1px 1px 0}
+  .battery-fill{height:100%;border-radius:1.5px;background:currentColor;transition:width .4s,background .3s}
+  .battery-fill.low{background:#ff3b30}
+  .battery-fill.charging{background:#30d158}
+
+  /* ============ 主屏（SpringBoard） ============ */
+  .springboard{position:relative;flex:1;display:flex;flex-direction:column;overflow:hidden}
+  .wallpaper-layer{position:absolute;inset:0;transition:filter .3s;background-size:cover;background-position:center}
+  .wallpaper-layer.blur{filter:blur(var(--blur,0px))}
+  .wallpaper-veil{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0.15),rgba(0,0,0,0.05) 30%,rgba(0,0,0,0.25))}
+
+  .page-dots{position:relative;z-index:5;display:flex;justify-content:center;gap:7px;padding:8px 0 4px}
+  .page-dots .dot{width:6px;height:6px;border-radius:3px;background:rgba(255,255,255,0.5);transition:all .25s}
+  .page-dots .dot.on{width:17px;background:#fff}
+
+  .pages{position:relative;z-index:4;flex:1;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}
+  .pages::-webkit-scrollbar{display:none}
+  .page{flex:0 0 100%;scroll-snap-align:center;display:flex;align-items:flex-start;justify-content:center;padding:14px 12px 0}
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px 16px;width:100%;max-width:360px;justify-items:center}
+
+  .app{display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;border:none;background:none;padding:0;transition:transform .12s}
+  .app:active{transform:scale(.86)}
+  .app-icon{
+    width:var(--icon,60px);height:var(--icon,60px);border-radius:22.5%;
+    display:flex;align-items:center;justify-content:center;color:#fff;
+    box-shadow:0 4px 12px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.25);
+    position:relative;overflow:hidden;transition:filter .3s,background .3s;
+  }
+  .app-icon::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,0.28),rgba(255,255,255,0) 46%)}
+  .app-icon .glyph{position:relative;z-index:1;width:52%;height:52%}
+  .app-icon .glyph svg{width:100%;height:100%;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+  .app-label{font-size:11px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,0.7);max-width:74px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+
+  .app-icon.dark{background:linear-gradient(160deg,#3a3a3c,#1c1c1e)!important}
+  .app-icon.tint{background:#0a84ff!important}
+
+  /* ============ Dock ============ */
+  .dock{position:relative;z-index:5;padding:8px 14px 14px}
+  .dock-bg{display:flex;justify-content:space-around;align-items:center;background:rgba(255,255,255,0.28);backdrop-filter:blur(28px) saturate(var(--sat,1.6));-webkit-backdrop-filter:blur(28px) saturate(var(--sat,1.6));border-radius:26px;padding:12px 8px;box-shadow:0 6px 20px rgba(0,0,0,0.18)}
+  .dock .app-icon{width:calc(var(--icon,60px) * 0.92);height:calc(var(--icon,60px) * 0.92)}
+  .dock .app-label{display:none}
+
+  /* ============ Home Indicator ============ */
+  .home-indicator{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);width:134px;height:5px;border-radius:3px;background:var(--hi, #fff);opacity:0.9;z-index:900;transition:background .3s}
+
+  /* ============ App 全屏（设置） ============ */
+  .app-full{position:absolute;inset:0;background:#f2f2f7;color:#1c1c1e;z-index:1200;display:flex;flex-direction:column;overflow:hidden}
+  .app-full .af-header{display:flex;align-items:center;gap:6px;padding:14px 12px 10px;background:rgba(255,255,255,0.8);backdrop-filter:blur(20px);border-bottom:1px solid #e5e5ea;flex-shrink:0}
+  .af-back{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:none;border:none;color:#007aff;cursor:pointer;padding:0}
+  .af-back svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+  .af-title{flex:1;text-align:center;font-size:16px;font-weight:600}
+  .af-body{flex:1;overflow-y:auto;padding:14px 16px 40px;-webkit-overflow-scrolling:touch}
+
+  .group-title{font-size:13px;color:#8e8e93;margin:20px 6px 8px;text-transform:none}
+  .card{background:#fff;border-radius:14px;overflow:hidden;margin-bottom:12px}
+  .row{display:flex;align-items:center;gap:12px;padding:13px 16px;border-bottom:1px solid #f0f0f3;cursor:pointer}
+  .row:last-child{border-bottom:none}
+  .row:active{background:#f7f7f9}
+  .row .ri{flex:1;min-width:0}
+  .row .ri .t{font-size:15px}
+  .row .ri .s{font-size:12px;color:#8e8e93;margin-top:2px}
+  .row .chev{color:#c7c7cc;font-size:18px}
+  .row input[type=text],.row input[type=password],.row textarea{flex:1;border:none;outline:none;font-size:15px;background:transparent;color:#1c1c1e;text-align:right}
+  .row textarea{min-height:70px;text-align:left;font-family:inherit}
+
+  /* 壁纸选择器 */
+  .wall-thumbs{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .wall-thumb{aspect-ratio:9/19.5;border-radius:10px;cursor:pointer;border:3px solid transparent;overflow:hidden;position:relative;background-size:cover;background-position:center}
+  .wall-thumb.on{border-color:#0a84ff}
+  .wall-thumb .wk{position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:10px;color:#fff;text-shadow:0 1px 2px rgba(0,0,0,0.6)}
+  .wall-thumb.upload{border-style:dashed;border-color:#c7c7cc;display:flex;align-items:center;justify-content:center;color:#8e8e93;font-size:12px}
+
+  /* 开关 */
+  .switch{position:relative;width:48px;height:29px;flex-shrink:0}
+  .switch input{opacity:0;width:0;height:0}
+  .switch .sl{position:absolute;inset:0;border-radius:15px;background:#e9e9ea;transition:.2s;cursor:pointer}
+  .switch .sl::before{content:'';position:absolute;left:3px;top:3px;width:23px;height:23px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,0.3);transition:.2s}
+  .switch input:checked + .sl{background:#34c759}
+  .switch input:checked + .sl::before{transform:translateX(19px)}
+
+  /* 滑块 */
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:4px;border-radius:2px;background:#e5e5ea;outline:none}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,0.25);cursor:pointer;border:none}
+
+  /* Toast */
+  .toast{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) scale(.9);background:rgba(0,0,0,0.78);color:#fff;padding:12px 22px;border-radius:14px;font-size:13px;opacity:0;transition:all .25s;z-index:2000;pointer-events:none;max-width:80%;text-align:center}
+  .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+  /* 过渡 */
+  .fade-enter-active,.fade-leave-active{transition:opacity .25s,transform .3s}
+  .fade-enter-from{opacity:0;transform:translateY(30px)}
+  .fade-leave-to{opacity:0;transform:translateY(30px)}
+
+  @media (max-width:480px){
+    .stage{align-items:stretch}
+    .shell{width:100vw;height:100vh;height:100dvh;border-radius:0}
+    .screen{border-radius:0}
+    .btn-hardware{display:none}
+    .dynamic-island{top:env(safe-area-inset-top,8px)}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="stage">
+    <div class="shell">
+      <!-- 侧边物理按键 -->
+      <div class="btn-hardware btn-mute"></div>
+      <div class="btn-hardware btn-vol-up"></div>
+      <div class="btn-hardware btn-vol-down"></div>
+      <div class="btn-hardware btn-power"></div>
+      <div class="btn-hardware btn-action"></div>
+
+      <div class="screen" :style="{fontFamily: currentFont}">
+        <!-- 灵动岛 -->
+        <div class="dynamic-island"><span class="cam"></span></div>
+
+        <!-- 状态栏 -->
+        <div class="statusbar" :style="{color: statusColor}">
+          <span class="time">{{ now }}</span>
+          <div class="status-icons">
+            <svg width="17" height="11" viewBox="0 0 17 11"><path fill="currentColor" d="M0 11h3V4H0v7zm4 0h3V7H4v4zm4 0h3V2H8v9zm4 0h3v-7h-3v7z"/></svg>
+            <svg width="15" height="11" viewBox="0 0 15 11"><path fill="currentColor" d="M13.5 7.3c-1.7 0-3.3.8-4.4 2.1C7.8 8.2 6.2 7.3 4.5 7.3c-1.8 0-3.4 1.3-3.9 3.2L0 11l4.5-1.5c.5.3 1.1.5 1.6.5s1.1-.2 1.6-.5L15 11l-1.5-3.7z"/></svg>
+            <span style="font-size:11px;font-weight:700;letter-spacing:.3px">5G</span>
+            <div class="battery-shell"><div class="battery-fill" :class="{'low': battery<=20 && !charging, 'charging': charging}" :style="{width: battery+'%'}"></div></div>
+          </div>
+        </div>
+
+        <!-- SpringBoard -->
+        <div class="springboard">
+          <div class="wallpaper-layer" :class="{blur: settings.blur>0}" :style="wallpaperStyle"></div>
+          <div class="wallpaper-veil"></div>
+
+          <div class="page-dots">
+            <span class="dot" :class="{on: page===0}"></span>
+            <span class="dot" :class="{on: page===1}"></span>
+          </div>
+
+          <div class="pages" ref="pages" @scroll="onScroll">
+            <div class="page"><div class="grid">
+              <button v-for="a in gridApps(0)" :key="a.id" class="app" @click="tapApp(a)">
+                <div class="app-icon" :class="{'dark':settings.darkIcons,'tint':settings.tintIcons}" :style="iconStyle(a)">
+                  <span class="glyph" v-html="glyphs[a.glyph]"></span>
+                </div>
+                <span class="app-label">{{ a.name }}</span>
+              </button>
+            </div></div>
+            <div class="page"><div class="grid">
+              <button v-for="a in gridApps(1)" :key="a.id" class="app" @click="tapApp(a)">
+                <div class="app-icon" :class="{'dark':settings.darkIcons,'tint':settings.tintIcons}" :style="iconStyle(a)">
+                  <span class="glyph" v-html="glyphs[a.glyph]"></span>
+                </div>
+                <span class="app-label">{{ a.name }}</span>
+              </button>
+            </div></div>
+          </div>
+
+          <!-- Dock -->
+          <div class="dock"><div class="dock-bg">
+            <button v-for="a in dockApps" :key="a.id" class="app" @click="tapApp(a)">
+              <div class="app-icon" :class="{'dark':settings.darkIcons,'tint':settings.tintIcons}" :style="iconStyle(a)">
+                <span class="glyph" v-html="glyphs[a.glyph]"></span>
+              </div>
+              <span class="app-label">{{ a.name }}</span>
+            </button>
+          </div></div>
+        </div>
+
+        <!-- Home Indicator -->
+        <div class="home-indicator" :style="{'--hi': homeIndicatorColor}"></div>
+      </div>
+
+      <!-- ============ 设置 App ============ -->
+      <transition name="fade">
+        <div v-if="openAppId==='settings'" class="app-full">
+          <div class="af-header">
+            <button class="af-back" @click="openAppId=null">
+              <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+            </button>
+            <span class="af-title">设置</span>
+          </div>
+          <div class="af-body">
+
+            <div class="group-title">API 配置中心</div>
+            <div class="card">
+              <div class="row"><div class="ri"><div class="t">API 地址</div></div><input type="text" v-model="settings.apiUrl" placeholder="https://api.example.com"></div>
+              <div class="row"><div class="ri"><div class="t">API Key</div></div><input type="password" v-model="settings.apiKey" placeholder="sk-..."></div>
+              <div class="row"><div class="ri"><div class="t">模型</div></div><input type="text" v-model="settings.model" placeholder="gpt-4o / 自定义"></div>
+              <div class="row"><div class="ri"><div class="t">System Prompt</div><div class="s">全局系统提示词</div></div></div>
+              <div class="row"><textarea v-model="settings.systemPrompt" placeholder="输入系统提示词..."></textarea></div>
+              <div class="row"><div class="ri"><div class="t">文风过滤规则</div><div class="s">用于约束 AI 输出风格</div></div></div>
+              <div class="row"><textarea v-model="settings.styleFilter" placeholder="输入文风/过滤规则..."></textarea></div>
+            </div>
+
+            <div class="group-title">壁纸</div>
+            <div class="card" style="padding:14px">
+              <div class="wall-thumbs">
+                <div v-for="w in wallpapers" :key="w.id" class="wall-thumb" :class="{on: settings.wallpaperId===w.id}" :style="{background:w.css}" @click="pickWall(w.id)"><span class="wk">{{ w.name }}</span></div>
+                <div v-if="settings.customWallpaper" class="wall-thumb" :class="{on: settings.wallpaperId==='custom'}" :style="{backgroundImage:'url('+settings.customWallpaper+')'}" @click="pickWall('custom')"><span class="wk">自定义</span></div>
+                <label class="wall-thumb upload">上传壁纸<input type="file" accept="image/*" hidden @change="onWallUpload"></label>
+              </div>
+              <div style="margin-top:14px">
+                <div class="row" style="padding:6px 0"><div class="ri"><div class="t">壁纸模糊度</div></div><span style="font-size:13px;color:#8e8e93">{{ settings.blur }}px</span></div>
+                <input type="range" min="0" max="20" step="1" v-model.number="settings.blur">
+                <div class="row" style="padding:6px 0;margin-top:10px"><div class="ri"><div class="t">毛玻璃饱和度</div></div><span style="font-size:13px;color:#8e8e93">{{ settings.saturation.toFixed(1) }}</span></div>
+                <input type="range" min="0.5" max="2" step="0.1" v-model.number="settings.saturation">
+              </div>
+            </div>
+
+            <div class="group-title">字体</div>
+            <div class="card">
+              <div v-for="f in fonts" :key="f.id" class="row" @click="settings.font=f.id">
+                <div class="ri"><div class="t" :style="{fontFamily:f.family}">{{ f.name }}</div></div>
+                <span v-if="settings.font===f.id" style="color:#0a84ff">✓</span>
+                <span v-else class="chev">›</span>
+              </div>
+            </div>
+
+            <div class="group-title">图标</div>
+            <div class="card">
+              <div class="row"><div class="ri"><div class="t">图标大小</div></div><span style="font-size:13px;color:#8e8e93">{{ settings.iconSize }}px</span></div>
+              <div style="padding:0 16px 14px"><input type="range" min="48" max="72" step="1" v-model.number="settings.iconSize"></div>
+              <div class="row"><div class="ri"><div class="t">深色模式图标</div></div><label class="switch"><input type="checkbox" v-model="settings.darkIcons"><span class="sl"></span></label></div>
+              <div class="row"><div class="ri"><div class="t">高亮色调图标</div></div><label class="switch"><input type="checkbox" v-model="settings.tintIcons"><span class="sl"></span></label></div>
+            </div>
+
+            <div class="group-title">系统</div>
+            <div class="card">
+              <div class="row"><div class="ri"><div class="t">充电状态</div><div class="s">模拟电池充电动画</div></div><label class="switch"><input type="checkbox" v-model="charging"><span class="sl"></span></label></div>
+              <div class="row" @click="battery=100"><div class="ri"><div class="t">电量</div><div class="s">{{ battery }}%</div></div><span class="chev">›</span></div>
+            </div>
+
+            <div class="group-title">数据导入导出</div>
+            <div class="card">
+              <div class="row" @click="exportBackup"><div class="ri"><div class="t">一键导出备份</div><div class="s">导出全部设置与数据为 .json</div></div><span class="chev">›</span></div>
+              <div class="row" @click="$refs.importInput.click()"><div class="ri"><div class="t">一键导入备份</div><div class="s">上传 .json 100% 还原</div></div><span class="chev">›</span></div>
+            </div>
+            <input type="file" accept="application/json" ref="importInput" hidden @change="importBackup">
+
+            <p style="text-align:center;color:#c7c7cc;font-size:11px;margin:20px 0">iOS 18 拟真沙盒 · 微内核底座 v1.0</p>
+          </div>
+        </div>
+      </transition>
+
+      <!-- Toast -->
+      <div class="toast" :class="{show: toast}" >{{ toast }}</div>
+    </div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, computed, onMounted, onBeforeUnmount, watch } = Vue
+
+// ---------- 图标 SVG（无 emoji，矢量绘制） ----------
+const glyphs = {
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  chat: '<svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  music: '<svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>',
+  photo: '<svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>',
+  camera: '<svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>',
+  clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>',
+  mail: '<svg viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>',
+  note: '<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>',
+  bag: '<svg viewBox="0 0 24 24"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>',
+  users: '<svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+  map: '<svg viewBox="0 0 24 24"><path d="M1 6v16l7-4 8 4 7-4V2l-7 4-8-4-7 4z"/><line x1="8" y1="2" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="22"/></svg>',
+  wallet: '<svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 0 1 0-4h14v4"/><path d="M3 5v14a2 2 0 0 0 2 2h16v-5"/><path d="M18 12a2 2 0 0 0 0 4h4v-4z"/></svg>',
+  heart: '<svg viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>',
+}
+
+// ---------- 应用槽位（占位，未来插拔组件） ----------
+const appSlots = [
+  { id:'wechat',  name:'微信',   glyph:'chat',  colors:['#07c160','#06ad56'] },
+  { id:'netease', name:'网易云', glyph:'music', colors:['#ec4141','#c62f2f'] },
+  { id:'zhihu',   name:'知乎',   glyph:'book',  colors:['#0f88eb','#0a6bc4'] },
+  { id:'photos',  name:'照片',   glyph:'photo', colors:['#ffffff','#e8e8ed'] },
+  { id:'camera',  name:'相机',   glyph:'camera',colors:['#4a4a4f','#232327'] },
+  { id:'clock',   name:'时钟',   glyph:'clock', colors:['#1c1c1e','#000000'] },
+  { id:'phone',   name:'电话',   glyph:'phone', colors:['#34c759','#28a745'] },
+  { id:'mail',    name:'邮件',   glyph:'mail',  colors:['#007aff','#0056d6'] },
+  { id:'notes',   name:'备忘录', glyph:'note',  colors:['#ffcc00','#e6b800'] },
+  { id:'shop',    name:'商城',   glyph:'bag',   colors:['#ff9500','#e68a00'] },
+  { id:'forum',   name:'论坛',   glyph:'users', colors:['#5e5ce6','#4846cc'] },
+  { id:'maps',    name:'地图',   glyph:'map',   colors:['#34c759','#28a745'] },
+  { id:'wallet',  name:'钱包',   glyph:'wallet',colors:['#1c1c1e','#000000'] },
+  { id:'health',  name:'健康',   glyph:'heart', colors:['#ff375f','#e02d50'] },
+  { id:'music',   name:'音乐',   glyph:'music', colors:['#fa233b','#d91c31'] },
+  { id:'settings',name:'设置',   glyph:'gear',  colors:['#8e8e93','#636366'] },
+]
+const dockIds = ['phone','settings','wechat','netease']
+
+// ---------- 内置壁纸（CSS 渐变网格） ----------
+const wallpapers = [
+  { id:'w1', name:'暮色蓝紫', css:'radial-gradient(120% 120% at 18% 15%, #7b5ea7 0%, transparent 52%), radial-gradient(120% 120% at 82% 18%, #4a6fa5 0%, transparent 52%), radial-gradient(130% 130% at 50% 85%, #3b3b6b 0%, transparent 62%), linear-gradient(160deg,#14142a,#2d2d54)' },
+  { id:'w2', name:'晨曦暖橙', css:'radial-gradient(120% 120% at 12% 8%, #ff9a8b 0%, transparent 46%), radial-gradient(120% 120% at 88% 14%, #ffb199 0%, transparent 50%), radial-gradient(130% 130% at 50% 92%, #b06ab3 0%, transparent 56%), linear-gradient(160deg,#f9a98f,#f6a3c0)' },
+  { id:'w3', name:'深空青', css:'radial-gradient(120% 120% at 22% 28%, #0f2027 0%, transparent 50%), radial-gradient(120% 120% at 78% 24%, #203a43 0%, transparent 50%), radial-gradient(140% 140% at 50% 82%, #2c5364 0%, transparent 60%), linear-gradient(160deg,#0a0f14,#16313f)' },
+]
+
+// ---------- 字体 ----------
+const fonts = [
+  { id:'system', name:'系统默认', family:'-apple-system, "SF Pro Text", "PingFang SC", sans-serif' },
+  { id:'pingfang', name:'苹方', family:'"PingFang SC", "Microsoft YaHei", sans-serif' },
+  { id:'serif', name:'衬线', family:'Georgia, "Songti SC", "SimSun", serif' },
+  { id:'mono', name:'等宽', family:'"SF Mono", "Menlo", Consolas, monospace' },
+]
+
+const LS_KEY = 'ios18_sandbox_settings'
+const LS_VERSION = 1
+
+createApp({
+  setup(){
+    const now = ref('09:41')
+    const battery = ref(80)
+    const charging = ref(false)
+    const openAppId = ref(null)
+    const page = ref(0)
+    const toast = ref('')
+    const pagesRef = ref(null)
+
+    let saved = null
+    try{ saved = JSON.parse(localStorage.getItem(LS_KEY)) }catch(e){ saved = null }
+
+    const settings = reactive(Object.assign({
+      wallpaperId:'w1', customWallpaper:'', font:'system', iconSize:60,
+      blur:0, saturation:1.6, darkIcons:false, tintIcons:false,
+      apiUrl:'', apiKey:'', model:'gpt-4o', systemPrompt:'', styleFilter:''
+    }, saved || {}))
+
+    let toastTimer = null
+    const showToast = (m) => { toast.value = m; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 1600) }
+
+    // ---------- 时钟 ----------
+    const tick = () => { const d = new Date(); now.value = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') }
+    let clockTimer = null, batteryTimer = null
+    onMounted(() => {
+      tick(); clockTimer = setInterval(tick, 1000)
+      batteryTimer = setInterval(() => {
+        if(charging){ battery.value = Math.min(100, battery.value + 1) }
+        else { battery.value = Math.max(0, battery.value - (Math.random() > 0.6 ? 1 : 0)) }
+      }, 3000)
+    })
+    onBeforeUnmount(() => { clearInterval(clockTimer); clearInterval(batteryTimer) })
+
+    // ---------- 持久化 ----------
+    watch(settings, () => { localStorage.setItem(LS_KEY, JSON.stringify({ ...settings, _v: LS_VERSION })) }, { deep:true })
+
+    // ---------- 壁纸样式 ----------
+    const wallpaperStyle = computed(() => {
+      const blur = settings.blur > 0 ? settings.blur : 0
+      if(settings.wallpaperId === 'custom' && settings.customWallpaper){
+        return { backgroundImage: 'url(' + settings.customWallpaper + ')', '--blur': blur + 'px' }
+      }
+      const w = wallpapers.find(x => x.id === settings.wallpaperId) || wallpapers[0]
+      return { background: w.css, '--blur': blur + 'px' }
+    })
+
+    // ---------- 字体 ----------
+    const currentFont = computed(() => { const f = fonts.find(x => x.id === settings.font); return f ? f.family : fonts[0].family })
+
+    // ---------- 图标样式 ----------
+    const iconStyle = (a) => {
+      if(settings.tintIcons) return { background:'#0a84ff' }
+      const c = a.colors || ['#8e8e93','#636366']
+      return { background: 'linear-gradient(160deg,' + c[0] + ',' + c[1] + ')' }
+    }
+
+    // ---------- 状态栏 / Home indicator 颜色 ----------
+    const statusColor = computed(() => openAppId.value === 'settings' ? '#1c1c1e' : '#fff')
+    const homeIndicatorColor = computed(() => openAppId.value === 'settings' ? '#1c1c1e' : '#fff')
+
+    // ---------- 应用分页 ----------
+    const gridApps = (p) => { const rest = appSlots.filter(a => !dockIds.includes(a.id)); return rest.filter((a,i) => Math.floor(i/14) % 2 === p) }
+    const dockApps = dockIds.map(id => appSlots.find(a => a.id === id)).filter(Boolean)
+
+    // ---------- 交互 ----------
+    const tapApp = (a) => { if(a.id === 'settings'){ openAppId.value = 'settings' } else { showToast('「' + a.name + '」组件接口已预留（微内核 Slot）') } }
+    const pickWall = (id) => { settings.wallpaperId = id }
+    const onWallUpload = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { settings.customWallpaper = r.result; settings.wallpaperId = 'custom'; showToast('壁纸已上传') }; r.readAsDataURL(f); e.target.value = '' }
+
+    // ---------- 备份 ----------
+    const exportBackup = () => {
+      const data = { app:'ios18-sandbox', version: LS_VERSION, exportedAt: new Date().toISOString(), settings: JSON.parse(JSON.stringify(settings)) }
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type:'application/json' })
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'ios18_backup.json'; a.click(); URL.revokeObjectURL(a.href)
+      showToast('备份已导出')
+    }
+    const importBackup = (e) => {
+      const f = e.target.files[0]; if(!f) return
+      const r = new FileReader()
+      r.onload = () => {
+        try{
+          const d = JSON.parse(r.result)
+          const src = d.settings || d
+          Object.keys(settings).forEach(k => { if(src[k] !== undefined) settings[k] = src[k] })
+          showToast('备份导入成功')
+        }catch(err){ showToast('导入失败：文件格式错误') }
+      }
+      r.readAsText(f); e.target.value = ''
+    }
+
+    const onScroll = () => { if(pagesRef.value){ page.value = Math.round(pagesRef.value.scrollLeft / pagesRef.value.clientWidth) } }
+
+    return { now, battery, charging, openAppId, page, toast, settings, glyphs, wallpapers, fonts, appSlots,
+      gridApps, dockApps, iconStyle, wallpaperStyle, statusColor, homeIndicatorColor, currentFont,
+      tapApp, pickWall, onWallUpload, exportBackup, importBackup, onScroll, pagesRef }
+  }
+}).mount('#app')
+</script>
+</body>
+</html>
