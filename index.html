@@ -1,224 +1,806 @@
 <!doctype html>
 <html lang="zh-CN">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-  <meta name="theme-color" content="#1b1d21" />
-  <title>晓梦生小手机</title>
-  <link rel="stylesheet" href="styles.css">
-  <link rel="manifest" href="manifest.json">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="theme-color" content="#16181c" />
+<title>晓梦生小手机</title>
+<script src="https://cdn.jsdelivr.net/npm/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={darkMode:'class',theme:{extend:{colors:{ink:'#121212',paper:'#f4f6f9',hair:'#f0f2f7',brand:'#056de8'}}}}</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<style>
+  :root{ --safe-top:env(safe-area-inset-top,0px); --safe-bottom:env(safe-area-inset-bottom,0px) }
+  *{-webkit-tap-highlight-color:transparent}
+  [v-cloak]{display:none}
+  html,body{height:100%;margin:0;background:#0a0b0d;color:#e9ebee;font-family:-apple-system,'SF Pro Text','PingFang SC','HarmonyOS Sans SC','Microsoft YaHei',system-ui,sans-serif;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
+  /* 手机外框 */
+  .phone{position:relative;width:100%;max-width:420px;height:100vh;height:100dvh;margin:0 auto;overflow:hidden;display:flex;flex-direction:column;background:#16181c;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 24px 80px rgba(0,0,0,.6)}
+  @supports (height:100dvh){.phone{height:100dvh}}
+  @media(min-width:520px){.phone{height:min(92vh,880px);border-radius:38px;margin-top:4vh;border:10px solid #202226}}
+  /* 状态栏 */
+  .status-bar{display:flex;justify-content:space-between;align-items:center;padding:calc(var(--safe-top) + 8px) 22px 6px;font-size:14px;font-weight:600;flex-shrink:0;z-index:60;position:relative}
+  /* 主屏幕壁纸 */
+  .wallpaper{position:absolute;inset:0;background-image:url('wallpaper.jpg');background-size:cover;background-position:center;filter:saturate(.72) contrast(1.04)}
+  .wallpaper::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(20,22,26,.30),rgba(20,22,26,.55) 40%,rgba(20,22,26,.86))}
+  /* 应用图标 */
+  .app-icon{transition:transform .13s}
+  .app-icon:active{transform:scale(.86)}
+  .app-icon .tile{width:62px;height:62px;border-radius:18px;display:flex;align-items:center;justify-content:center;color:#fff;box-shadow:0 6px 18px rgba(0,0,0,.38),inset 0 1px 0 rgba(255,255,255,.28);position:relative;overflow:hidden}
+  .app-icon .tile::after{content:'';position:absolute;inset:0;border-radius:inherit;background:linear-gradient(180deg,rgba(255,255,255,.30),rgba(255,255,255,0) 46%)}
+  .app-icon .tile i{position:relative;z-index:1;font-size:24px}
+  .app-icon .nm{font-size:11px;color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.6);text-align:center;line-height:1.2;max-width:74px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .dock .app-icon .tile{width:56px;height:56px;border-radius:16px}
+  .dock .app-icon .nm{display:none}
+  /* 毛玻璃 */
+  .glass{background:rgba(28,30,35,.72);backdrop-filter:blur(24px) saturate(1.3);-webkit-backdrop-filter:blur(24px) saturate(1.3)}
+  .dock-bg{background:rgba(40,42,48,.55);backdrop-filter:blur(26px) saturate(1.4);-webkit-backdrop-filter:blur(26px) saturate(1.4);border:1px solid rgba(255,255,255,.08)}
+  /* 页面过渡 */
+  .screen-enter-active,.screen-leave-active{transition:opacity .25s,transform .3s}
+  .screen-enter-from{opacity:0;transform:translateX(100%)}
+  .screen-leave-to{opacity:0;transform:translateX(-8%)}
+  /* 卡片 */
+  .card{background:#1f2227;border:1px solid rgba(255,255,255,.07);border-radius:16px;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+  .soft-shadow{box-shadow:0 1px 3px rgba(18,18,18,.1),0 8px 24px rgba(0,0,0,.18)}
+  /* 输入 */
+  .field-in{border:1px solid rgba(255,255,255,.12);background:#26292f;color:#e9ebee;transition:border .15s,box-shadow .15s}
+  .field-in:focus{border-color:#5a626c;box-shadow:0 0 0 3px rgba(90,98,108,.15);outline:none}
+  /* 按钮 */
+  .btn{transition:transform .1s,opacity .1s,background .15s}
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:#8a929c;color:#fff}
+  .btn-primary:hover{background:#98a0aa}
+  .btn-ghost{background:#26292f;color:#b6bcc4;border:1px solid rgba(255,255,255,.12)}
+  /* 开关 */
+  .switch{position:relative;display:inline-block;width:48px;height:29px}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;inset:0;border-radius:15px;background:#3a3e46;transition:.2s;cursor:pointer}
+  .slider::before{content:'';position:absolute;left:3px;top:3px;width:23px;height:23px;border-radius:50%;background:#fff;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+  .switch input:checked + .slider{background:#7c8793}
+  .switch input:checked + .slider::before{transform:translateX(19px)}
+  /* 气泡 */
+  .bubble{max-width:74%;padding:10px 14px;border-radius:18px;font-size:15px;line-height:1.5;word-break:break-word}
+  .bubble.me{background:#3d4a5c;color:#fff;border-bottom-right-radius:6px}
+  .bubble.char{background:#26292f;border:1px solid rgba(255,255,255,.07);border-bottom-left-radius:6px}
+  /* 消息卡片 */
+  .msg-card{max-width:74%;border-radius:14px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+  .rp-card{background:#f04e3e;color:#fff}
+  .tr-card{background:#fdf6ec;color:#4a3010}
+  /* 模态 */
+  .modal-mask{position:fixed;inset:0;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;z-index:400}
+  .modal-box{background:#1f2227;border-radius:20px;width:88%;max-width:380px;max-height:82vh;overflow-y:auto;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+  /* 滚动条隐藏 */
+  .no-scrollbar::-webkit-scrollbar{display:none}
+  .no-scrollbar{scrollbar-width:none}
+  /* 分页 */
+  .pg-btn{min-width:30px;height:30px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:#26292f;color:#b6bcc4;font-size:13px}
+  .pg-btn.on{background:#8a929c;color:#fff}
+  /* toast */
+  .toast-enter-active,.toast-leave-active{transition:opacity .25s,transform .25s}
+  .toast-enter-from,.toast-leave-to{opacity:0;transform:translate(-50%,-50%) scale(.9)}
+</style>
 </head>
 <body>
-  <div class="phone" id="phone" role="application">
+<div id="app" v-cloak>
+  <div class="phone">
     <!-- 状态栏 -->
-    <div class="status-bar" id="statusBar">
-      <span class="time" id="statusTime">09:41</span>
-      <div class="status-icons">
-        <svg class="signal" viewBox="0 0 17 11"><path fill="currentColor" d="M0 11h3V4H0v7zm4 0h3V7H4v4zm4 0h3V2H8v9zm4 0h3v-7h-3v7z"/></svg>
-        <svg class="wifi" viewBox="0 0 15 11"><path fill="currentColor" d="M13.5 7.3c-1.7 0-3.3.8-4.4 2.1C7.8 8.2 6.2 7.3 4.5 7.3c-1.8 0-3.4 1.3-3.9 3.2L0 11l4.5-1.5c.5.3 1.1.5 1.6.5s1.1-.2 1.6-.5L15 11l-1.5-3.7z"/></svg>
-        <svg class="battery" viewBox="0 0 24 12"><path fill="currentColor" d="M18 3H6c-.6 0-1 .4-1 1v6c0 .6.4 1 1 1h12c.6 0 1-.4 1-1V4c0-.6-.4-1-1-1zm0 8H6V4h12v6z"/><path fill="currentColor" d="M21 5v2c0 .6-.4 1-1 1h-1c-.6 0-1-.4-1-1V5c0-.6.4-1 1-1h1c.6 0 1 .4 1 1z"/></svg>
+    <div class="status-bar">
+      <span>{{ time }}</span>
+      <div class="flex items-center gap-1.5">
+        <i class="fa-solid fa-signal text-xs"></i>
+        <i class="fa-solid fa-wifi text-xs"></i>
+        <i class="fa-solid fa-battery-three-quarters text-xs"></i>
       </div>
     </div>
 
     <!-- 主屏幕 -->
-    <div class="home-screen" id="homeScreen">
-      <div class="wallpaper-veil"></div>
-      <div class="page-indicator" id="pageIndicator"><span class="dot active"></span><span class="dot"></span></div>
-      <div class="app-pages" id="appPages">
-        <div class="app-page" data-page="0"><div class="app-grid" id="appGridPage0"></div></div>
-        <div class="app-page" data-page="1"><div class="app-grid" id="appGridPage1"></div></div>
+    <div v-if="view==='home'" class="relative flex-1 flex flex-col overflow-hidden">
+      <div class="wallpaper"></div>
+      <div class="relative z-10 flex justify-center gap-1.5 pt-3 pb-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-white/40"></span>
+        <span class="w-4 h-1.5 rounded-full bg-white/90"></span>
       </div>
-      <div class="dock"><div class="dock-bg"><div class="dock-apps" id="dockApps"></div></div></div>
+      <div class="relative z-10 flex-1 overflow-y-auto no-scrollbar px-2 pt-3">
+        <div class="grid grid-cols-4 gap-y-5 gap-x-3 justify-items-center">
+          <button v-for="a in gridApps" :key="a.id" class="app-icon flex flex-col items-center gap-1.5" @click="openApp(a.id)">
+            <div class="tile bg-gradient-to-br" :class="a.grad"><i :class="'fa-solid '+a.icon"></i></div>
+            <span class="nm">{{ a.name }}</span>
+          </button>
+        </div>
+      </div>
+      <div class="relative z-10 px-3.5 pb-4 pt-3">
+        <div class="dock-bg rounded-[26px] p-3 flex justify-around dock">
+          <button v-for="a in dockApps" :key="a.id" class="app-icon flex flex-col items-center gap-1.5" @click="openApp(a.id)">
+            <div class="tile bg-gradient-to-br" :class="a.grad"><i :class="'fa-solid '+a.icon"></i></div>
+            <span class="nm">{{ a.name }}</span>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- 应用容器 -->
-    <div class="app-container" id="appContainer"></div>
-
-    <!-- 手势条 -->
-    <div class="home-indicator" id="homeIndicator"></div>
-  </div>
-
-  <!-- ============ 微信 ============ -->
-  <template id="tpl-wechat">
-    <div class="app-screen" data-app="wechat">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <div class="header-center">
-          <div class="wechat-tabs" id="wechatTabs">
-            <button class="tab active" data-tab="chats">微信</button>
-            <button class="tab" data-tab="contacts">通讯录</button>
-            <button class="tab" data-tab="discover">发现</button>
-            <button class="tab" data-tab="me">我</button>
+    <transition v-else name="screen">
+      <div class="flex-1 flex flex-col overflow-hidden" :key="appId">
+        <!-- ===== 微信 ===== -->
+        <div v-if="appId==='wechat'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full flex items-center justify-center" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="flex-1 flex gap-1 justify-center">
+              <button v-for="t in ['chats','contacts','discover','me']" :key="t" class="px-3 py-1.5 rounded-lg text-[15px]" :class="wechatTab===t?'text-white font-semibold':'text-slate-400'" @click="wechatTab=t">{{ ['微信','通讯录','发现','我'][['chats','contacts','discover','me'].indexOf(t)] }}</button>
+            </div>
+            <button class="w-8 h-8 rounded-full flex items-center justify-center" @click="openModal({title:'添加',body:'menu'})"><i class="fa-solid fa-plus"></i></button>
+          </header>
+          <!-- 会话 -->
+          <div v-if="wechatTab==='chats'" class="flex-1 overflow-y-auto no-scrollbar">
+            <div v-for="c in chats" :key="c.id" class="flex items-center gap-3 px-4 py-3 border-b border-white/5 active:bg-white/5" @click="openChat(c.id)">
+              <div class="w-12 h-12 rounded-xl flex items-center justify-center text-white text-lg font-semibold bg-gradient-to-br from-slate-400 to-slate-600" :style="avatarStyle(charByName(c.name))">{{ avatarText(charByName(c.name)||c) }}</div>
+              <div class="flex-1 min-w-0">
+                <div class="flex justify-between items-center"><span class="text-[15px] font-medium">{{ c.name }}</span><span class="text-[11px] text-slate-500">{{ timeAgo(c.time) }}</span></div>
+                <div class="text-[13px] text-slate-500 mt-0.5 truncate">{{ c.last }}</div>
+              </div>
+            </div>
+            <div v-if="!chats.length" class="text-center text-slate-500 text-sm py-16">暂无会话，请先创建角色</div>
+          </div>
+          <!-- 通讯录 -->
+          <div v-else-if="wechatTab==='contacts'" class="flex-1 overflow-y-auto no-scrollbar">
+            <div class="flex items-center gap-3 px-4 py-3 border-b border-white/5" @click="newChar()"><div class="w-11 h-11 rounded-lg bg-white/5 flex items-center justify-center text-slate-400 text-xl">+</div><span class="text-[15px]">添加新的 char 人设</span></div>
+            <div class="px-4 py-1.5 text-xs text-slate-500 bg-black/20">角色 ({{ characters.length }})</div>
+            <div v-for="c in characters" :key="c.id" class="flex items-center gap-3 px-4 py-3 border-b border-white/5" @click="openChat(c.id)">
+              <div class="w-11 h-11 rounded-xl flex items-center justify-center text-white font-semibold bg-gradient-to-br from-sky-500 to-sky-800" :style="avatarStyle(c)">{{ avatarText(c) }}</div>
+              <div class="flex-1 min-w-0"><div class="text-[15px]">{{ c.name }}</div><div class="text-xs text-slate-500">{{ (c.tags||[]).join('、') }}</div></div>
+            </div>
+          </div>
+          <!-- 发现 -->
+          <div v-else-if="wechatTab==='discover'" class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="card overflow-hidden mb-3">
+              <div class="flex items-center gap-3 px-4 py-3.5" @click="openSub('moments')"><i class="fa-solid fa-camera text-pink-400 w-6"></i><span class="flex-1">朋友圈</span><i class="fa-solid fa-chevron-right text-slate-600 text-sm"></i></div>
+              <div class="flex items-center gap-3 px-4 py-3.5 border-t border-white/5" @click="openSub('favorites')"><i class="fa-solid fa-star text-amber-400 w-6"></i><span class="flex-1">收藏</span><i class="fa-solid fa-chevron-right text-slate-600 text-sm"></i></div>
+              <div class="flex items-center gap-3 px-4 py-3.5 border-t border-white/5" @click="openSub('stickers')"><i class="fa-solid fa-face-smile text-emerald-400 w-6"></i><span class="flex-1">表情包</span><i class="fa-solid fa-chevron-right text-slate-600 text-sm"></i></div>
+            </div>
+            <div class="text-xs text-slate-500 px-1 mb-2">小程序</div>
+            <div class="card overflow-hidden">
+              <div class="flex items-center gap-3 px-4 py-3.5" @click="openApp('music')"><i class="fa-solid fa-music text-rose-400 w-6"></i><span class="flex-1">网易云音乐</span><i class="fa-solid fa-chevron-right text-slate-600 text-sm"></i></div>
+              <div class="flex items-center gap-3 px-4 py-3.5 border-t border-white/5" @click="openApp('couple')"><i class="fa-solid fa-heart text-pink-400 w-6"></i><span class="flex-1">情侣空间</span><i class="fa-solid fa-chevron-right text-slate-600 text-sm"></i></div>
+              <div class="flex items-center gap-3 px-4 py-3.5 border-t border-white/5" @click="openApp('offline')"><i class="fa-solid fa-masks-theater text-amber-400 w-6"></i><span class="flex-1">线下</span><i class="fa-solid fa-chevron-right text-slate-600 text-sm"></i></div>
+            </div>
+          </div>
+          <!-- 我 -->
+          <div v-else class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="flex items-center gap-3 px-4 py-4" @click="openModal({title:'编辑资料',body:'profile'})">
+              <div class="w-14 h-14 rounded-xl flex items-center justify-center text-white text-xl font-semibold bg-gradient-to-br from-sky-500 to-sky-800" :style="avatarStyle(profile)">{{ avatarText(profile) }}</div>
+              <div class="flex-1"><div class="text-[17px]">{{ profile.name || '晓梦生' }}</div><div class="text-xs text-slate-500">微信号：{{ profile.wechatId || 'xm-sheng' }}</div></div>
+              <i class="fa-solid fa-chevron-right text-slate-600 text-sm"></i>
+            </div>
+            <div class="card overflow-hidden mt-3">
+              <div class="px-4 py-3.5 border-b border-white/5" @click="openSub('favorites')">收藏</div>
+              <div class="px-4 py-3.5 border-b border-white/5" @click="openSub('moments')">朋友圈</div>
+              <div class="px-4 py-3.5" @click="openApp('settings')">设置</div>
+            </div>
           </div>
         </div>
-        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </header>
-      <div class="tab-panels">
-        <div class="tab-panel active" id="panel-chats"></div>
-        <div class="tab-panel" id="panel-contacts"></div>
-        <div class="tab-panel" id="panel-discover"></div>
-        <div class="tab-panel" id="panel-me"></div>
+
+        <!-- ===== 聊天详情 ===== -->
+        <div v-else-if="appId==='chat'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full flex items-center justify-center" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <div class="flex-1 text-center min-w-0"><div class="text-[15px] font-semibold">{{ curChat && curChat.name }}</div><div class="text-[11px] text-slate-500">{{ charByName(curChat&&curChat.name)&&charByName(curChat.name).readNoReply ? '在线 · 已读不回' : '在线' }}</div></div>
+            <button class="w-8 h-8 rounded-full flex items-center justify-center" @click="openModal({title:'聊天设置',body:'chatset'})"><i class="fa-solid fa-ellipsis"></i></button>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-2.5" :style="curChar&&(curChar.chatBg||curChar.chatBgUrl)?{backgroundImage:'url('+(curChar.chatBg||curChar.chatBgUrl)+')',backgroundSize:'cover',backgroundPosition:'center'}:{}">
+            <div v-for="m in curMsgs" :key="m.id" class="flex" :class="m.sender==='me'?'justify-end':'justify-start'">
+              <div v-if="m.type==='call'||m.type==='system'" class="mx-auto text-[11px] text-slate-500">{{ m.text }}</div>
+              <div v-else-if="m.type==='redpacket'" class="msg-card rp-card flex items-center gap-3 p-3 cursor-pointer" @click="openRedPacket(m)">
+                <div class="w-10 h-10 rounded-lg bg-yellow-400 text-amber-800 flex items-center justify-center font-bold">吉</div>
+                <div><div class="text-sm font-semibold">{{ m.sender==='me'?'你':'ta' }}的红包</div><div class="text-[11px] opacity-85">{{ m.opened?'已领取':'点击领取' }}</div></div>
+              </div>
+              <div v-else-if="m.type==='transfer'" class="msg-card tr-card flex items-center gap-3 p-3">
+                <div class="w-10 h-10 rounded-full bg-amber-500 text-white flex items-center justify-center font-bold">¥</div>
+                <div><div class="text-xs text-amber-700">转账</div><div class="text-lg font-bold">¥{{ m.text }}</div></div>
+              </div>
+              <div v-else-if="m.type==='image'" class="msg-card"><img :src="m.dataUrl" class="max-w-[200px] rounded-xl"></div>
+              <div v-else-if="m.type==='audio'" class="bubble" :class="m.sender==='me'?'me':'char'" @click="playVoice(m)">
+                <div class="flex items-center gap-2"><i class="fa-solid fa-play text-xs"></i><div class="flex items-end gap-0.5 h-5"><span class="w-0.5 bg-current rounded" style="height:10px"></span><span class="w-0.5 bg-current rounded" style="height:18px"></span><span class="w-0.5 bg-current rounded" style="height:13px"></span></div><span class="text-xs">{{ m.duration||3 }}''</span></div>
+                <div class="text-xs opacity-75 mt-1">{{ m.text }}</div>
+              </div>
+              <div v-else class="bubble" :class="m.sender==='me'?'me':'char'" :style="m.sender==='me'?(profile.bubbleColor?{background:profile.bubbleColor}:{}):(charByName(curChat&&curChat.name)&&charByName(curChat.name).bubbleColor?{background:charByName(curChat.name).bubbleColor}:{})" @contextmenu.prevent="msgMenu(m)">
+                {{ m.text }}
+              </div>
+            </div>
+          </div>
+          <footer class="glass flex items-center gap-1.5 px-2.5 py-2 border-t border-white/5">
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400" @click="openModal({title:'发送语音',body:'voice'})"><i class="fa-solid fa-microphone"></i></button>
+            <div class="flex-1 bg-white/5 rounded-full px-4 py-2"><input v-model="draft" class="w-full bg-transparent outline-none text-[15px]" placeholder="发送消息" @keydown.enter="sendMsg"></div>
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400" @click="openModal({title:'发送位置',body:'location'})"><i class="fa-solid fa-location-dot"></i></button>
+            <button class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400" @click="actionPanel=!actionPanel"><i class="fa-solid fa-plus"></i></button>
+          </footer>
+          <div v-if="actionPanel" class="glass border-t border-white/5 p-3 grid grid-cols-4 gap-3">
+            <button v-for="act in ['image','transfer','redpacket','voicecall','videocall','sticker','mind']" :key="act" class="flex flex-col items-center gap-1.5 py-1" @click="chatAction(act)">
+              <div class="w-13 h-13 rounded-xl bg-white/5 flex items-center justify-center text-lg p-3.5"><i :class="'fa-solid '+{image:'fa-image',transfer:'fa-money-bill-transfer',redpacket:'fa-gift',voicecall:'fa-phone',videocall:'fa-video',sticker:'fa-face-smile',mind:'fa-heart'}[act]"></i></div>
+              <span class="text-[10px] text-slate-400">{{ {image:'照片',transfer:'转账',redpacket:'红包',voicecall:'语音通话',videocall:'视频通话',sticker:'表情包',mind:'心声'}[act] }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- ===== 设置 ===== -->
+        <div v-else-if="appId==='settings'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">设置</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="text-xs text-slate-500 px-1 mb-2">用户配置</div>
+            <div class="card overflow-hidden mb-3">
+              <div v-for="p in profiles" :key="p.id" class="px-4 py-3.5 border-b border-white/5" :class="p.id===activeProfile?'':'opacity-60'" @click="activeProfile=p.id;store.rawSet('activeProfile',p.id)">
+                <div class="text-[15px]">{{ p.name }}{{ p.id===activeProfile?' · 当前':'' }}</div><div class="text-xs text-slate-500">{{ p.persona }}</div>
+              </div>
+            </div>
+            <div class="text-xs text-slate-500 px-1 mb-2">AI API</div>
+            <div class="card p-4 mb-3 space-y-3">
+              <input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="API 地址" v-model="settings.apiUrl">
+              <input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="API 密钥" v-model="settings.apiKey">
+              <input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="模型名称" v-model="settings.modelName">
+              <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm font-semibold" @click="store.set('settings',settings);showToast('已保存')">保存 API</button>
+            </div>
+            <div class="text-xs text-slate-500 px-1 mb-2">通用</div>
+            <div class="card overflow-hidden">
+              <div class="flex items-center justify-between px-4 py-3.5"><span>前端通知</span><label class="switch"><input type="checkbox" v-model="settings.notify"><span class="slider"></span></label></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 角色设定 ===== -->
+        <div v-else-if="appId==='character'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">角色设定</h1>
+            <button class="w-8 h-8 rounded-full" @click="newChar()"><i class="fa-solid fa-plus"></i></button>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
+            <div v-for="c in characters" :key="c.id" class="card p-4" :class="c.id===activeChar?'ring-1 ring-slate-500':''">
+              <div class="flex items-center gap-3">
+                <div class="w-13 h-13 rounded-2xl flex items-center justify-center text-white text-xl font-semibold bg-gradient-to-br from-sky-500 to-sky-800" :style="avatarStyle(c)">{{ avatarText(c) }}</div>
+                <div class="flex-1 min-w-0"><div class="text-[16px] font-semibold">{{ c.name }} <span v-if="c.id===activeChar" class="text-[10px] bg-slate-600 text-white px-1.5 py-0.5 rounded">使用中</span></div><div class="text-xs text-slate-500">{{ (c.tags||[]).join('、')||'无标签' }} · {{ (c.worldbooks||[]).length }} 本世界书</div></div>
+              </div>
+              <p class="text-[13px] text-slate-400 mt-2.5 line-clamp-2">{{ c.persona || '未填写人设' }}</p>
+              <div class="flex gap-2 mt-3">
+                <button class="btn btn-primary flex-1 rounded-lg py-2 text-xs font-semibold" @click="setActiveChar(c.id)">{{ c.id===activeChar?'当前角色':'设为当前' }}</button>
+                <button class="btn btn-ghost rounded-lg px-3 py-2 text-xs" @click="openModal({title:'编辑角色',body:'char',data:c})">编辑</button>
+                <button class="btn btn-ghost rounded-lg px-3 py-2 text-xs" @click="characters=characters.filter(x=>x.id!==c.id);saveChars()">删除</button>
+              </div>
+            </div>
+            <div v-if="!characters.length" class="text-center text-slate-500 text-sm py-16">暂无角色，点右上角 + 新建</div>
+          </div>
+        </div>
+
+        <!-- ===== 世界书 ===== -->
+        <div v-else-if="appId==='worldbook'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">世界书</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="card p-4 mb-3 space-y-3">
+              <input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="名称" v-model="wbDraft.name">
+              <input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="深度（如：核心设定）" v-model="wbDraft.depth">
+              <textarea class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" rows="4" placeholder="粘贴世界书内容..." v-model="wbDraft.content"></textarea>
+              <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm font-semibold" @click="addWorldbook">添加世界书</button>
+            </div>
+            <div v-for="w in worldbooks" :key="w.id" class="card p-4 mb-3">
+              <div class="flex items-center gap-3"><div class="flex-1 font-semibold">{{ w.name }}</div><label class="switch" title="常驻"><input type="checkbox" :checked="w.resident" @change="toggleResident(w)"><span class="slider"></span></label></div>
+              <div v-if="w.depth" class="text-[11px] text-amber-400 mt-1">深度：{{ w.depth }}</div>
+              <p class="text-xs text-slate-500 mt-1.5 line-clamp-3">{{ trunc(w.content,80) }}</p>
+              <div class="flex gap-2 mt-2.5 text-xs"><button class="btn btn-ghost rounded-lg px-3 py-1.5" @click="wbUp(w)">优先级 ↑</button><button class="btn btn-ghost rounded-lg px-3 py-1.5" @click="delWorldbook(w.id)">删除</button></div>
+            </div>
+            <div v-if="!worldbooks.length" class="text-center text-slate-500 text-sm py-16">暂无世界书，请导入</div>
+          </div>
+        </div>
+
+        <!-- ===== 文风 ===== -->
+        <div v-else-if="appId==='style'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">文风</h1>
+            <button class="w-8 h-8 rounded-full" @click="newStyle()"><i class="fa-solid fa-plus"></i></button>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3">
+            <div v-for="s in styles" :key="s.id" class="card p-4">
+              <div class="flex items-center gap-3"><div class="flex-1 font-semibold">{{ s.name }}</div><span class="text-[10px] px-2 py-0.5 rounded-full" :class="s.mode==='offline'?'bg-amber-500/20 text-amber-300':'bg-sky-500/20 text-sky-300'">{{ s.mode==='offline'?'线下':'线上' }}</span></div>
+              <p class="text-xs text-slate-500 mt-1.5 line-clamp-2">{{ trunc(s.content,80) }}</p>
+              <div class="flex gap-2 mt-2.5 text-xs"><button class="btn btn-ghost rounded-lg px-3 py-1.5" @click="toggleStyleMode(s)">转{{ s.mode==='offline'?'线上':'线下' }}</button><button class="btn btn-ghost rounded-lg px-3 py-1.5" @click="delStyle(s.id)">删除</button></div>
+            </div>
+            <div v-if="!styles.length" class="text-center text-slate-500 text-sm py-16">暂无文风</div>
+          </div>
+        </div>
+
+        <!-- ===== 情侣空间 ===== -->
+        <div v-else-if="appId==='couple'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">我们的空间</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="rounded-3xl p-6 mb-3 bg-gradient-to-br from-rose-900/60 to-black/20">
+              <div class="text-4xl font-bold">{{ couplePoints }}</div><div class="text-xs text-slate-400 mt-1">恋爱积分 · 与 {{ char?char.name:'ta' }} 的甜蜜值</div>
+            </div>
+            <div class="text-xs text-slate-500 px-1 mb-2">每日日记</div>
+            <div class="card p-4 mb-3"><button class="btn btn-primary w-full rounded-xl py-2.5 text-sm font-semibold" @click="genDiary">生成今日日记</button></div>
+            <div v-for="d in coupleDiary.slice(0,5)" :key="d.id" class="card p-4 mb-2.5"><div class="text-xs text-slate-500">{{ d.date }}</div><p class="text-sm leading-relaxed mt-1.5">{{ d.text }}</p></div>
+            <div class="text-xs text-slate-500 px-1 mb-2">情侣任务</div>
+            <div class="card p-4 mb-3"><div class="flex gap-2"><input v-model="newTask" class="field-in flex-1 rounded-xl px-3.5 py-2.5 text-sm" placeholder="添加想一起做的事"><button class="btn btn-ghost rounded-xl px-4 text-sm" @click="addTask">添加</button></div></div>
+            <div v-for="t in coupleTasks" :key="t.id" class="card flex items-center gap-3 px-4 py-3 mb-2"><label class="switch"><input type="checkbox" :checked="t.done" @change="taskDone(t)"><span class="slider"></span></label><span class="flex-1 text-sm" :class="t.done?'line-through opacity-50':''">{{ t.text }}</span><span class="text-xs text-amber-400">+{{ t.points }}</span></div>
+          </div>
+        </div>
+
+        <!-- ===== 查看手机 ===== -->
+        <div v-else-if="appId==='checkphone'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">查看手机</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="card p-4 mb-3">
+              <div class="flex justify-between text-xs text-slate-500 mb-3"><span>09:41</span><span>{{ char?char.name:'ta' }} 的手机</span></div>
+              <div class="grid grid-cols-4 gap-4">
+                <div v-for="a in ['wechat','notes','diary','gallery','contacts','messages','browser','music']" :key="a" class="flex flex-col items-center gap-1.5" @click="openCharApp(a)">
+                  <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-slate-400 to-slate-600 flex items-center justify-center text-white"><i :class="'fa-solid '+{wechat:'fa-comment',notes:'fa-note-sticky',diary:'fa-book',gallery:'fa-image',contacts:'fa-address-book',messages:'fa-message',browser:'fa-globe',music:'fa-music'}[a]"></i></div>
+                  <span class="text-[10px] text-slate-500">{{ {wechat:'微信',notes:'便签',diary:'日记',gallery:'相册',contacts:'通讯录',messages:'短信',browser:'浏览器',music:'音乐'}[a] }}</span>
+                </div>
+              </div>
+            </div>
+            <div v-if="charPhoneContent" class="card p-4" v-html="charPhoneContent"></div>
+            <div v-else class="card p-8 text-center text-slate-500 text-sm">点上方图标查看 ta 的手机内容</div>
+          </div>
+        </div>
+
+        <!-- ===== 商城 ===== -->
+        <div v-else-if="appId==='shop'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">商城</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="rounded-2xl p-6 text-center mb-3 bg-gradient-to-br from-amber-800/50 to-black/20"><div class="text-lg font-bold">晓梦商城 · 精选好物</div></div>
+            <div class="grid grid-cols-2 gap-3">
+              <div v-for="p in shopProducts" :key="p.name" class="card overflow-hidden">
+                <div class="h-28 flex items-center justify-center text-4xl text-white bg-gradient-to-br" :class="p.grad">{{ p.icon }}</div>
+                <div class="p-3"><div class="text-[13px] font-medium">{{ p.name }}</div><div class="text-[15px] font-bold text-amber-400 mt-1">¥{{ p.price }}</div><button class="btn btn-ghost w-full rounded-lg py-1.5 mt-2 text-xs" @click="showToast('已加入购物车')">加入购物车</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 论坛 ===== -->
+        <div v-else-if="appId==='forum'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">论坛</h1>
+            <button class="w-8 h-8 rounded-full" @click="askQuestion()"><i class="fa-solid fa-plus"></i></button>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div v-for="p in forumPosts" :key="p.id" class="card p-4 mb-3" @click="openModal({title:'问题',body:'post',data:p})">
+              <div class="text-[16px] font-semibold leading-snug">{{ p.title }}</div>
+              <p class="text-[13px] text-slate-500 mt-1.5 line-clamp-2">{{ trunc(p.body,60) }}</p>
+              <div class="flex gap-4 text-xs text-slate-500 mt-2.5"><span>{{ p.likes }} 赞同</span><span>{{ (p.answers||[]).length }} 回答</span></div>
+            </div>
+            <div v-if="!forumPosts.length" class="text-center text-slate-500 text-sm py-16">暂无问题，点右上角提问</div>
+          </div>
+        </div>
+
+        <!-- ===== 线下 ===== -->
+        <div v-else-if="appId==='offline'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">线下</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="rounded-3xl p-6 mb-3 bg-gradient-to-br from-amber-900/50 to-black/20"><div class="text-2xl font-bold">线下 · 沉浸对话</div><div class="text-xs text-slate-400 mt-2">完整世界书挂载，长文输出</div></div>
+            <div class="card p-4 space-y-3">
+              <div class="text-sm text-slate-400">对话模式</div>
+              <div class="flex gap-2"><button class="btn flex-1 rounded-xl py-2 text-sm" :class="offlineMode==='long'?'btn-primary':'btn-ghost'" @click="offlineMode='long'">长文模式</button><button class="btn flex-1 rounded-xl py-2 text-sm" :class="offlineMode==='short'?'btn-primary':'btn-ghost'" @click="offlineMode='short'">短文模式</button></div>
+              <div class="text-sm text-slate-400">在场角色</div>
+              <div class="flex flex-wrap gap-2">
+                <button v-for="c in characters" :key="c.id" class="px-3 py-2 rounded-xl text-sm" :class="offlineChar===c.id?'bg-slate-600 text-white':'bg-white/5 text-slate-300'" @click="offlineChar=c.id">{{ c.name }}</button>
+              </div>
+            </div>
+            <div class="card p-4 mt-3 space-y-2.5" style="min-height:200px">
+              <div v-for="m in offlineMsgs" :key="m.id" class="flex" :class="m.sender==='me'?'justify-end':'justify-start'"><div class="bubble whitespace-pre-wrap" :class="m.sender==='me'?'me':'char'">{{ m.text }}</div></div>
+              <div v-if="!offlineMsgs.length" class="text-center text-slate-500 text-sm py-8">选择角色开始沉浸对话</div>
+            </div>
+            <div class="flex gap-2 mt-3"><textarea v-model="offlineDraft" class="field-in flex-1 rounded-xl px-3.5 py-2.5 text-sm" rows="2" placeholder="输入动作、对话或场景描述..."></textarea><button class="btn btn-primary rounded-xl px-4" @click="offlineSend">发送</button></div>
+          </div>
+        </div>
+
+        <!-- ===== 共读 ===== -->
+        <div v-else-if="appId==='reading'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">共读</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div class="flex gap-1.5 mb-3 bg-white/5 rounded-xl p-1">
+              <button class="flex-1 py-2 rounded-lg text-sm" :class="readingTab==='books'?'bg-slate-600 text-white':'text-slate-400'" @click="readingTab='books'">书库</button>
+              <button class="flex-1 py-2 rounded-lg text-sm" :class="readingTab==='fanfic'?'bg-slate-600 text-white':'text-slate-400'" @click="readingTab='fanfic'">同人文</button>
+            </div>
+            <div v-if="readingTab==='books'" class="grid grid-cols-3 gap-3">
+              <div v-for="b in books" :key="b.id" class="text-center" @click="openModal({title:b.name,body:'reader',data:b})">
+                <div class="h-28 rounded-xl bg-gradient-to-br from-slate-500 to-slate-800 flex items-center justify-center text-white text-2xl font-bold">{{ b.name[0] }}</div>
+                <div class="text-[13px] font-medium mt-2 truncate">{{ b.name }}</div>
+                <div class="text-[11px] text-slate-500 truncate">{{ trunc(b.content,20) }}</div>
+              </div>
+              <div v-if="!books.length" class="col-span-3 text-center text-slate-500 text-sm py-16">书库为空</div>
+            </div>
+            <div v-else>
+              <div class="card p-4 mb-3 space-y-3"><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="主题/CP" v-model="fanficTopic"><button class="btn btn-primary w-full rounded-xl py-2.5 text-sm" @click="genFanfic">生成同人文</button></div>
+              <div v-for="f in fanfics" :key="f.id" class="card p-4 mb-2.5" @click="openModal({title:f.topic,body:'reader',data:{name:f.topic,content:f.text}})"><div class="font-medium">{{ f.topic }}</div><p class="text-xs text-slate-500 mt-1.5 line-clamp-2">{{ trunc(f.text,60) }}</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 网易云 ===== -->
+        <div v-else-if="appId==='music'" class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">网易云音乐</h1>
+            <button class="w-8 h-8 rounded-full" @click="showToast('导入本地音频即可播放')"><i class="fa-solid fa-plus"></i></button>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar">
+            <div class="bg-gradient-to-b from-rose-950/60 to-transparent p-4 pb-6">
+              <div class="flex items-center gap-3"><div class="w-13 h-13 rounded-full bg-white/10 flex items-center justify-center text-2xl">云</div><div><div class="font-semibold">网易云音乐</div><div class="text-xs text-slate-400">登录后可同步歌单</div></div></div>
+              <div class="flex gap-4 mt-4 text-sm text-slate-400"><button class="text-rose-400 border-b-2 border-rose-400 pb-1">本地音乐</button><button class="pb-1">歌词</button></div>
+            </div>
+            <div class="p-3">
+              <div v-for="(t,i) in tracks" :key="i" class="flex items-center gap-3 py-3 border-b border-white/5" @click="playTrack(t)"><span class="text-slate-500 text-sm w-6">{{ i+1 }}</span><div class="flex-1 min-w-0"><div class="text-sm font-medium">{{ t.name }}</div><div class="text-xs text-slate-500">{{ t.artist }}</div></div><i class="fa-solid fa-play text-slate-500 text-xs"></i></div>
+              <div v-if="!tracks.length" class="text-center text-slate-500 text-sm py-16">暂无音乐，请导入本地音频</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ===== 朋友圈/收藏/表情包 ===== -->
+        <div v-else class="flex-1 flex flex-col overflow-hidden">
+          <header class="glass flex items-center gap-1 px-2 pt-2 pb-2.5 border-b border-white/5">
+            <button class="w-8 h-8 rounded-full" @click="back"><i class="fa-solid fa-chevron-left"></i></button>
+            <h1 class="flex-1 text-center text-[16px] font-semibold">{{ {moments:'朋友圈',favorites:'收藏',stickers:'表情包'}[appId] }}</h1><span class="w-8"></span>
+          </header>
+          <div class="flex-1 overflow-y-auto no-scrollbar p-3">
+            <div v-if="appId==='moments'">
+              <div class="card p-4 mb-3"><textarea v-model="momentDraft" class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" rows="2" placeholder="这一刻想分享什么"></textarea><button class="btn btn-primary w-full rounded-xl py-2.5 text-sm mt-2" @click="postMoment">发表</button></div>
+              <div v-for="m in moments" :key="m.id" class="card p-4 mb-2.5"><div class="flex items-center gap-2.5"><div class="w-9 h-9 rounded-lg bg-gradient-to-br from-sky-500 to-sky-800 flex items-center justify-center text-white text-sm">{{ (m.author||'我')[0] }}</div><div><div class="text-sm font-medium">{{ m.author }}</div><div class="text-[11px] text-slate-500">{{ timeAgo(m.time) }}</div></div></div><p class="text-sm mt-2.5">{{ m.text }}</p></div>
+            </div>
+            <div v-else-if="appId==='favorites'">
+              <div v-for="f in favorites" :key="f.id" class="card px-4 py-3.5 mb-2"><div class="text-sm">{{ f.text }}</div><div class="text-xs text-slate-500 mt-1">{{ timeAgo(f.time) }}</div></div>
+              <div v-if="!favorites.length" class="text-center text-slate-500 text-sm py-16">暂无收藏</div>
+            </div>
+            <div v-else>
+              <div class="card p-4 mb-3 space-y-3"><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="图床链接" v-model="stickerLink"><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="中文说明（必含汉字）" v-model="stickerNote"><button class="btn btn-primary w-full rounded-xl py-2.5 text-sm" @click="addSticker">导入表情包</button></div>
+              <div class="grid grid-cols-3 gap-3"><div v-for="s in stickers" :key="s.link" class="card p-2"><img :src="s.link" class="w-full h-14 object-cover rounded-lg"><div class="text-[10px] text-slate-500 text-center mt-1.5 truncate">{{ s.note }}</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </transition>
+  </div>
+
+  <!-- 模态 -->
+  <transition name="toast">
+    <div v-if="modal" class="modal-mask" @click.self="closeModal">
+      <div class="modal-box p-5">
+        <div class="flex items-center justify-between mb-4"><h3 class="text-[17px] font-semibold">{{ modal.title }}</h3><button @click="closeModal"><i class="fa-solid fa-xmark text-slate-500"></i></button></div>
+        <!-- 通用字段表单 -->
+        <div v-if="modal.fields" class="space-y-3">
+          <div v-for="(v,k) in modal.fields" :key="k">
+            <label class="text-xs text-slate-400 block mb-1.5">{{ {name:'名称',persona:'人设',tags:'标签',mood:'心情',monologue:'心声',bubble:'气泡颜色',scene:'场景',content:'内容',mode:'类型',title:'标题',body:'描述'}[k]||k }}</label>
+            <textarea v-if="['persona','monologue','content','body'].includes(k)" class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" rows="3" v-model="modal.fields[k]"></textarea>
+            <select v-else-if="k==='mode'" class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="modal.fields[k]"><option value="online">线上</option><option value="offline">线下</option></select>
+            <input v-else :type="k==='bubble'?'color':'text'" class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="modal.fields[k]">
+          </div>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm font-semibold" @click="modal.onSave(modal.fields)">保存</button>
+        </div>
+        <!-- 问题详情 -->
+        <div v-else-if="modal.body==='post'">
+          <div class="font-semibold text-[17px]">{{ modal.data.title }}</div>
+          <p class="text-sm text-slate-400 mt-2">{{ modal.data.body }}</p>
+          <div class="mt-4 space-y-3">
+            <div v-for="(a,i) in (modal.data.answers||[])" :key="i" class="card p-3.5"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-gradient-to-br from-sky-500 to-sky-800 flex items-center justify-center text-white text-xs">{{ a.author[0] }}</div><span class="text-sm font-medium">{{ a.author }}</span></div><p class="text-sm text-slate-300 mt-2">{{ a.text }}</p></div>
+          </div>
+          <div class="mt-4"><div class="text-xs text-slate-400 mb-1.5">生成回答数量</div><select class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="genCount"><option>1</option><option>2</option><option>3</option><option>5</option></select></div>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm mt-3" @click="genAnswers(modal.data);closeModal()">生成回答</button>
+        </div>
+        <!-- 阅读器 -->
+        <div v-else-if="modal.body==='reader'">
+          <div class="max-h-[50vh] overflow-y-auto text-[15px] leading-relaxed whitespace-pre-wrap text-slate-300">{{ modal.data.content }}</div>
+        </div>
+        <!-- 编辑角色 -->
+        <div v-else-if="modal.body==='char'" class="space-y-3">
+          <div><label class="text-xs text-slate-400">角色名</label><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="modal.data.name"></div>
+          <div><label class="text-xs text-slate-400">人设</label><textarea class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" rows="3" v-model="modal.data.persona"></textarea></div>
+          <div><label class="text-xs text-slate-400">气泡颜色</label><input type="color" class="field-in w-full rounded-xl px-2 py-1" v-model="modal.data.bubbleColor"></div>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm" @click="saveChars();closeModal();showToast('已保存')">保存</button>
+        </div>
+        <!-- 发送语音 -->
+        <div v-else-if="modal.body==='voice'" class="space-y-3">
+          <textarea class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" rows="3" placeholder="输入要说的话" v-model="voiceText"></textarea>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm" @click="sendVoice">发送语音</button>
+        </div>
+        <!-- 发送位置 -->
+        <div v-else-if="modal.body==='location'" class="space-y-3">
+          <input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" placeholder="位置名称" v-model="locName">
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm" @click="sendLocation">发送</button>
+        </div>
+        <!-- 菜单 -->
+        <div v-else-if="modal.body==='menu'" class="space-y-2">
+          <button class="w-full text-left px-4 py-3 rounded-xl bg-white/5" @click="closeModal();newChar()"><i class="fa-solid fa-user-plus mr-2 text-sky-400"></i>新建角色人设</button>
+          <button class="w-full text-left px-4 py-3 rounded-xl bg-white/5" @click="closeModal()"><i class="fa-solid fa-users mr-2 text-violet-400"></i>发起群聊</button>
+        </div>
+        <!-- 聊天设置 -->
+        <div v-else-if="modal.body==='chatset'" class="space-y-3">
+          <div><label class="text-xs text-slate-400">角色备注</label><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="chatsetNote"></div>
+          <div class="flex items-center justify-between"><span class="text-sm">已读不回</span><label class="switch"><input type="checkbox" v-model="chatsetReadNoReply"><span class="slider"></span></label></div>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm" @click="saveChatset">保存</button>
+        </div>
+        <!-- 编辑资料 -->
+        <div v-else-if="modal.body==='profile'" class="space-y-3">
+          <div><label class="text-xs text-slate-400">名称</label><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="profile.name"></div>
+          <div><label class="text-xs text-slate-400">微信号</label><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="profile.wechatId"></div>
+          <div><label class="text-xs text-slate-400">个性签名</label><input class="field-in w-full rounded-xl px-3.5 py-2.5 text-sm" v-model="profile.sign"></div>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm" @click="saveProfiles();closeModal();showToast('已保存')">保存</button>
+        </div>
+        <!-- 转账 -->
+        <div v-else-if="modal.body==='transfer'" class="text-center">
+          <div class="flex items-center justify-center gap-1 text-4xl font-bold"><span>¥</span><input v-model="trAmt" type="number" class="w-1/2 text-4xl bg-transparent text-center outline-none" placeholder="0.00"></div>
+          <div class="text-xs text-slate-500 mt-3">转账给 {{ curChat && curChat.name }}</div>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm mt-4" @click="doTransfer">转账</button>
+        </div>
+        <!-- 红包 -->
+        <div v-else-if="modal.body==='redpacket'" class="text-center">
+          <div class="flex items-center justify-center gap-1 text-4xl font-bold"><span>¥</span><input v-model="rpAmt" type="number" class="w-1/2 text-4xl bg-transparent text-center outline-none" placeholder="0.00"></div>
+          <div class="text-xs text-slate-500 mt-3">单个金额</div>
+          <button class="btn btn-primary w-full rounded-xl py-2.5 text-sm mt-4" @click="doRedPacket">塞钱进红包</button>
+        </div>
+        <!-- 消息操作 -->
+        <div v-else-if="modal.body==='msgmenu'" class="space-y-2">
+          <button v-if="modal.data.sender==='me'" class="w-full text-left px-4 py-3 rounded-xl bg-white/5" @click="recallMsg(modal.data.id);closeModal()"><i class="fa-solid fa-rotate-left mr-2 text-slate-400"></i>撤回</button>
+          <button class="w-full text-left px-4 py-3 rounded-xl bg-white/5" @click="favMsg(modal.data);closeModal()"><i class="fa-solid fa-star mr-2 text-amber-400"></i>收藏</button>
+          <button class="w-full text-left px-4 py-3 rounded-xl bg-white/5" @click="closeModal()"><i class="fa-solid fa-xmark mr-2 text-slate-400"></i>取消</button>
+        </div>
       </div>
     </div>
-  </template>
+  </transition>
 
-  <!-- 聊天详情 -->
-  <template id="tpl-chat-detail">
-    <div class="app-screen chat-detail-screen" data-app="chat-detail">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <div class="header-title-wrap" id="chatDetailTitle">
-          <div class="chat-name" id="chatDetailName">联系人</div>
-          <div class="chat-sub" id="chatDetailSub">在线</div>
-        </div>
-        <button class="header-btn" data-action="more"><svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
-      </header>
-      <div class="chat-mind" id="chatMindBar"></div>
-      <div class="message-list" id="detailMessageList"></div>
-      <div class="chat-action-panel" id="chatActionPanel" style="display:none"></div>
-      <footer class="chat-composer">
-        <button class="composer-btn" data-action="voice"><svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
-        <div class="composer-input-wrap"><input type="text" id="detailChatInput" placeholder="发送消息" /></div>
-        <button class="composer-btn" data-action="emoji"><svg viewBox="0 0 24 24"><path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm3.5-9c.83 0 1.5-.67 1.5-1.5S16.33 8 15.5 8 14 8.67 14 9.5s.67 1.5 1.5 1.5zm-7 0c.83 0 1.5-.67 1.5-1.5S9.33 8 8.5 8 7 8.67 7 9.5 7.67 11 8.5 11zm3.5 6.5c2.33 0 4.31-1.46 5.11-3.5H6.89c.8 2.04 2.78 3.5 5.11 3.5z"/></svg></button>
-        <button class="composer-btn" data-action="plus"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </footer>
-    </div>
-  </template>
+  <!-- Toast -->
+  <transition name="toast">
+    <div v-if="toast" class="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/80 text-white px-5 py-3 rounded-2xl text-[13px] z-[500]">{{ toast }}</div>
+  </transition>
+</div>
 
-  <!-- 设置 -->
-  <template id="tpl-settings">
-    <div class="app-screen" data-app="settings">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">设置</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="app-body" id="settingsBody"></div>
-    </div>
-  </template>
+<script>
+const { createApp } = Vue
 
-  <!-- 角色设定 -->
-  <template id="tpl-character">
-    <div class="app-screen" data-app="character">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">角色设定</h1>
-        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </header>
-      <div class="app-body" id="characterBody"></div>
-    </div>
-  </template>
+// ============ 存储层 ============
+const store = {
+  get(k,d){ try{ const v=localStorage.getItem(k); return v===null?d:JSON.parse(v) }catch(e){ return d } },
+  set(k,v){ try{ localStorage.setItem(k,JSON.stringify(v)) }catch(e){} },
+  raw(k){ return localStorage.getItem(k) },
+  rawSet(k,v){ try{ localStorage.setItem(k,v) }catch(e){} }
+}
+const uid = p => (p||'id')+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+const trunc = (s,n) => { s=String(s||''); return s.length>n?s.slice(0,n)+'…':s }
+const timeAgo = ts => { const d=Date.now()-ts; if(d<60000)return'刚刚'; if(d<3600000)return Math.floor(d/60000)+'分钟前'; if(d<86400000)return Math.floor(d/3600000)+'小时前'; return new Date(ts).toLocaleDateString() }
+const msgPreview = m => { if(!m)return''; if(m.type==='text')return m.text; return({image:'[图片]',audio:'[语音]',location:'[位置]',transfer:'[转账]',redpacket:'[红包]',call:'[通话]',sticker:'[表情]'}[m.type]||'[消息]') }
 
-  <!-- 世界书 -->
-  <template id="tpl-worldbook">
-    <div class="app-screen" data-app="worldbook">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">世界书</h1>
-        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </header>
-      <div class="app-body" id="worldbookBody"></div>
-    </div>
-  </template>
-
-  <!-- 文风管理 -->
-  <template id="tpl-style">
-    <div class="app-screen" data-app="style">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">文风</h1>
-        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </header>
-      <div class="app-body" id="styleBody"></div>
-    </div>
-  </template>
-
-  <!-- 网易云音乐 -->
-  <template id="tpl-music">
-    <div class="app-screen" data-app="music">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">网易云音乐</h1>
-        <button class="header-btn" data-action="search"><svg viewBox="0 0 24 24"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg></button>
-      </header>
-      <div class="app-body flush" id="musicBody"></div>
-    </div>
-  </template>
-
-  <!-- 情侣空间 -->
-  <template id="tpl-couple">
-    <div class="app-screen" data-app="couple">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">我们的空间</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="app-body" id="coupleBody"></div>
-    </div>
-  </template>
-
-  <!-- 查手机 -->
-  <template id="tpl-checkphone">
-    <div class="app-screen" data-app="checkphone">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">查看手机</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="app-body" id="checkphoneBody"></div>
-    </div>
-  </template>
-
-  <!-- 商城 -->
-  <template id="tpl-shop">
-    <div class="app-screen" data-app="shop">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">商城</h1>
-        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </header>
-      <div class="app-body" id="shopBody"></div>
-    </div>
-  </template>
-
-  <!-- 酒馆（线下模式） -->
-  <template id="tpl-tavern">
-    <div class="app-screen" data-app="tavern">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">酒馆</h1>
-        <span class="header-spacer"></span>
-      </header>
-      <div class="app-body" id="tavernBody"></div>
-    </div>
-  </template>
-
-  <!-- 同人文 / 共读 -->
-  <template id="tpl-reading">
-    <div class="app-screen" data-app="reading">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">同人文与共读</h1>
-        <button class="header-btn" data-action="add"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </header>
-      <div class="app-body" id="readingBody"></div>
-    </div>
-  </template>
-
-  <!-- 论坛（知乎风） -->
-  <template id="tpl-forum">
-    <div class="app-screen" data-app="forum">
-      <header class="app-header">
-        <button class="header-btn back" data-action="back"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-        <h1 class="header-title">论坛</h1>
-        <button class="header-btn" data-action="ask"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-      </header>
-      <div class="app-body" id="forumBody"></div>
-    </div>
-  </template>
-
-  <script src="app.js"></script>
+createApp({
+  data(){
+    return {
+      time: this.clock(),
+      view: 'home',            // home | app
+      appId: 'wechat',
+      appStack: [],
+      // 数据
+      profiles: store.get('profiles',[]),
+      activeProfile: store.raw('activeProfile'),
+      characters: store.get('characters',[]),
+      activeChar: store.raw('activeChar'),
+      worldbooks: store.get('worldbooks',[]),
+      styles: store.get('styles',[]),
+      chats: store.get('chats',[]),
+      moments: store.get('moments',[]),
+      favorites: store.get('favorites',[]),
+      stickers: store.get('stickers',[]),
+      coupleDiary: store.get('coupleDiary',[]),
+      coupleTasks: store.get('coupleTasks',[]),
+      couplePoints: store.get('couplePoints',0),
+      tracks: store.get('tracks',[]),
+      books: store.get('books',[]),
+      fanfics: store.get('fanfics',[]),
+      forumPosts: store.get('forumPosts',[]),
+      settings: store.get('settings',{fontSize:15,fontUrl:'',apiUrl:'',apiKey:'',modelName:'',notify:false}),
+      // 微信内部状态
+      wechatTab: 'chats',
+      activeChat: null,
+      msgs: [],
+      draft: '',
+      actionPanel: false,
+      // 模态/Toast
+      modal: null,
+      toast: null,
+      // 交互临时状态
+      genCount: 3,
+      newTask: '',
+      momentDraft: '',
+      stickerLink: '', stickerNote: '',
+      voiceText: '', locName: '',
+      chatsetNote: '', chatsetReadNoReply: false,
+      fanficTopic: '',
+      offlineMode: 'long', offlineChar: null, offlineDraft: '', offlineMsgs: [],
+      readingTab: 'books',
+      charPhoneContent: '',
+      trAmt: '', rpAmt: '',
+      shopProducts: [
+        {name:'定制情侣头像',price:'9.9',icon:'像',grad:'from-pink-400 to-pink-700'},
+        {name:'专属情书模板',price:'6.6',icon:'书',grad:'from-indigo-400 to-indigo-700'},
+        {name:'主题皮肤',price:'19.9',icon:'肤',grad:'from-violet-400 to-violet-700'},
+        {name:'专属铃声',price:'12.0',icon:'铃',grad:'from-rose-400 to-rose-700'},
+        {name:'纪念日相册',price:'29.9',icon:'册',grad:'from-slate-400 to-slate-700'},
+        {name:'语音祝福',price:'15.0',icon:'语',grad:'from-sky-500 to-sky-800'},
+      ],
+      // 应用注册表
+      apps: [
+        {id:'wechat',name:'微信',icon:'fa-comment-dots',grad:'from-slate-500 to-slate-700',dock:true},
+        {id:'music',name:'网易云音乐',icon:'fa-music',grad:'from-rose-400 to-rose-700',dock:true},
+        {id:'offline',name:'线下',icon:'fa-masks-theater',grad:'from-amber-600 to-amber-900',dock:true},
+        {id:'settings',name:'设置',icon:'fa-gear',grad:'from-slate-400 to-slate-600',dock:true},
+        {id:'character',name:'角色设定',icon:'fa-user-pen',grad:'from-sky-500 to-sky-800',dock:false},
+        {id:'worldbook',name:'世界书',icon:'fa-book',grad:'from-indigo-400 to-indigo-700',dock:false},
+        {id:'style',name:'文风',icon:'fa-feather',grad:'from-violet-400 to-violet-700',dock:false},
+        {id:'couple',name:'情侣空间',icon:'fa-heart',grad:'from-pink-400 to-pink-700',dock:false},
+        {id:'checkphone',name:'查看手机',icon:'fa-mobile-screen',grad:'from-cyan-500 to-cyan-800',dock:false},
+        {id:'reading',name:'共读',icon:'fa-book-open',grad:'from-teal-400 to-teal-700',dock:false},
+        {id:'shop',name:'商城',icon:'fa-bag-shopping',grad:'from-yellow-500 to-yellow-800',dock:false},
+        {id:'forum',name:'论坛',icon:'fa-comments',grad:'from-blue-500 to-blue-800',dock:false},
+      ],
+    }
+  },
+  computed:{
+    profile(){ return this.profiles.find(p=>p.id===this.activeProfile) || this.profiles[0] || {} },
+    char(){ return this.characters.find(c=>c.id===this.activeChar) || this.characters[0] || null },
+    gridApps(){ return this.apps.filter(a=>!a.dock) },
+    dockApps(){ return this.apps.filter(a=>a.dock) },
+    curChat(){ return this.chats.find(c=>c.id===this.activeChat) || null },
+    curChar(){ return this.char },
+    curMsgs(){ return this.msgs },
+  },
+  methods:{
+    clock(){ const t=new Date(); return String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0') },
+    esc, trunc, timeAgo, msgPreview,
+    appById(id){ return this.apps.find(a=>a.id===id) },
+    avatarStyle(obj){ return obj&&obj.avatar ? {backgroundImage:'url('+obj.avatar+')',backgroundSize:'cover',backgroundPosition:'center'} : {} },
+    avatarText(obj){ return obj&&obj.avatar ? '' : (obj&&obj.name?obj.name[0]:'?') },
+    charByName(name){ return this.characters.find(c=>c.name===name) },
+    // 导航
+    openApp(id){ this.appId=id; this.appStack=[id]; this.view='app'; this.wechatTab='chats'; this.actionPanel=false },
+    closeApp(){ this.view='home'; this.appStack=[] },
+    back(){ if(this.appStack.length>1){ this.appStack.pop(); this.appId=this.appStack[this.appStack.length-1] } else this.closeApp() },
+    pushApp(id){ this.appStack.push(id); this.appId=id; this.view='app' },
+    openSub(key){ this.appId=key; this.appStack.push(key); this.view='app' },
+    // 持久化
+    saveChars(){ store.set('characters',this.characters) },
+    saveProfiles(){ store.set('profiles',this.profiles) },
+    saveWorldbooks(){ store.set('worldbooks',this.worldbooks) },
+    saveStyles(){ store.set('styles',this.styles) },
+    saveChats(){ store.set('chats',this.chats) },
+    saveMoments(){ store.set('moments',this.moments) },
+    saveFavorites(){ store.set('favorites',this.favorites) },
+    saveStickers(){ store.set('stickers',this.stickers) },
+    saveDiary(){ store.set('coupleDiary',this.coupleDiary) },
+    saveTasks(){ store.set('coupleTasks',this.coupleTasks) },
+    savePoints(){ store.set('couplePoints',this.couplePoints) },
+    saveBooks(){ store.set('books',this.books) },
+    savePosts(){ store.set('forumPosts',this.forumPosts) },
+    showToast(m){ this.toast=m; setTimeout(()=>this.toast=null,1800) },
+    openModal(o){ this.modal=o },
+    closeModal(){ this.modal=null },
+    // 微信
+    ensureChats(){
+      if(!this.chats.length){
+        this.chats = this.characters.map(c=>({id:c.id,type:'single',name:c.name,unread:0,last:'开始聊天吧',time:Date.now()}))
+        if(this.characters.length>=2) this.chats.push({id:'group_friends',type:'group',name:'好友群',avatar:'群',unread:0,last:'群聊已创建',time:Date.now(),members:this.characters.map(c=>c.id)})
+      } else {
+        this.characters.forEach(c=>{ if(!this.chats.find(ch=>ch.id===c.id)) this.chats.push({id:c.id,type:'single',name:c.name,unread:0,last:'开始聊天吧',time:Date.now()}) })
+      }
+      this.saveChats()
+    },
+    openChat(id){ this.activeChat=id; this.msgs=store.get('msg_'+id,[]); this.pushApp('chat') },
+    saveMsgs(){ store.set('msg_'+this.activeChat, this.msgs) },
+    sendMsg(){
+      const t=this.draft.trim(); if(!t) return
+      this.msgs.push({id:uid('m'),sender:'me',type:'text',text:t,time:Date.now()}); this.saveMsgs()
+      const chat=this.chats.find(c=>c.id===this.activeChat); if(chat){ chat.last=t; chat.time=Date.now() }
+      this.draft=''
+      const char=this.charByName(this.curChat&&this.curChat.name)
+      setTimeout(()=>{ const rep=char?['我在听，你说。',`${char.name}稍微停了一下，才回复你。`,'「继续，我想知道更多。」'][Math.floor(Math.random()*3)]:'我在。'; this.msgs.push({id:uid('m'),sender:'char',type:'text',text:rep,time:Date.now()}); this.saveMsgs(); this.updateMind() },700)
+    },
+    updateMind(){
+      const chat=this.curChat; if(!chat) return; const char=this.charByName(chat.name); if(!char) return
+      const lu=[...this.msgs].reverse().find(m=>m.sender==='me')
+      char.currentMind=`你刚才提到「${trunc(lu?lu.text:'',20)}」，${char.name}其实把每个字都听进去了。`
+      this.saveChars()
+    },
+    // 角色
+    setActiveChar(id){ this.activeChar=id; store.rawSet('activeChar',id) },
+    newChar(){ this.openModal({title:'新建角色',fields:{name:'',persona:'',tags:'',mood:'',monologue:'',bubble:'#26292f'},onSave:d=>{ const c={id:uid('char'),name:d.name,persona:d.persona,tags:d.tags.split('、').map(t=>t.trim()).filter(Boolean),mood:d.mood,monologue:d.monologue,bubbleColor:d.bubble,worldbooks:[],residentWorldbooks:[],guard:{speechStyle:'',forbiddenTopics:[],negativePrompts:''},readNoReply:false,timeSense:true}; this.characters.push(c); this.activeChar=c.id; store.rawSet('activeChar',c.id); this.saveChars(); this.closeModal(); this.showToast('角色已创建') }}) },
+    // 世界书
+    wbDraft:{name:'',content:'',depth:''},
+    addWorldbook(){
+      const n=this.wbDraft.name.trim(), c=this.wbDraft.content.trim(); if(!n||!c){ this.showToast('请填写名称和内容'); return }
+      this.worldbooks.push({id:uid('wb'),name:n,content:c,depth:this.wbDraft.depth,resident:false,priority:this.worldbooks.length+1})
+      this.saveWorldbooks(); this.wbDraft={name:'',content:'',depth:''}; this.showToast('世界书已添加')
+    },
+    toggleResident(w){ w.resident=!w.resident; this.saveWorldbooks() },
+    delWorldbook(id){ this.worldbooks=this.worldbooks.filter(w=>w.id!==id); this.saveWorldbooks() },
+    wbUp(w){ if(w.priority>1){ const o=this.worldbooks.find(x=>x.priority===w.priority-1); if(o)o.priority++; w.priority--; this.saveWorldbooks() } },
+    // 文风
+    newStyle(){ this.openModal({title:'新建文风',fields:{name:'',scene:'',content:'',mode:'online'},onSave:d=>{ this.styles.unshift({id:uid('style'),name:d.name,scene:d.scene,content:d.content,mode:d.mode}); this.saveStyles(); this.closeModal(); this.showToast('文风已保存') }}) },
+    toggleStyleMode(s){ s.mode=s.mode==='offline'?'online':'offline'; this.saveStyles() },
+    delStyle(id){ this.styles=this.styles.filter(s=>s.id!==id); this.saveStyles() },
+    // 情侣
+    genDiary(){
+      const c=this.char
+      this.coupleDiary.unshift({id:uid('d'),date:new Date().toLocaleDateString(),text:`今天，${c?c.name:'ta'}在日记里写道：「今天的风很轻，我想起你笑起来的样子。」`})
+      this.saveDiary(); this.showToast('日记已生成')
+    },
+    addTask(){
+      const v=this.newTask.trim(); if(!v)return; this.coupleTasks.push({id:uid('t'),text:v,done:false,points:10}); this.newTask=''; this.saveTasks()
+    },
+    taskDone(t){ t.done=!t.done; if(t.done)this.couplePoints+=t.points; this.saveTasks(); this.savePoints() },
+    // 论坛
+    askQuestion(){ this.openModal({title:'提问',fields:{title:'',body:''},onSave:d=>{ this.forumPosts.unshift({id:uid('p'),title:d.title,body:d.body,likes:0,answers:[],time:Date.now()}); this.savePosts(); this.closeModal(); this.showToast('已发布') }}) },
+    genAnswers(p){
+      const chars=this.characters, prof=this.profile
+      const pool=chars.length?chars.map(c=>({author:c.name,text:`${c.persona?trunc(c.persona,30)+'。':''}关于「${trunc(p.title,20)}」，我的看法其实很简单——心里早就有答案。`})):[{author:'匿名',text:'关于这个问题……'}]
+      for(let i=0;i<this.genCount;i++){ const t=pool[i%pool.length]; p.answers.push({author:t.author,text:t.text}) }
+      this.savePosts(); this.showToast('已生成回答')
+    },
+    // 收藏/朋友圈
+    favMsg(m){ this.favorites.unshift({id:uid('f'),text:m.type==='text'?m.text:msgPreview(m),time:Date.now()}); this.saveFavorites(); this.showToast('已收藏') },
+    recallMsg(id){ this.msgs=this.msgs.filter(m=>m.id!==id); this.msgs.push({id:uid('m'),sender:'system',type:'system',text:'你撤回了一条消息',time:Date.now()}); this.saveMsgs() },
+    postMoment(){ const t=this.momentDraft.trim(); if(!t)return; this.moments.unshift({id:uid('mm'),author:this.profile.name||'我',text:t,time:Date.now(),likes:0,comments:0}); this.saveMoments(); this.momentDraft=''; this.showToast('已发表') },
+    // 聊天卡片操作
+    openRedPacket(m){ if(m.opened)return; m.opened=true; this.saveMsgs(); const char=this.charByName(this.curChat&&this.curChat.name); setTimeout(()=>{ this.msgs.push({id:uid('m'),sender:'char',type:'text',text:char?'谢谢你的红包，我收到啦，心里很暖。':'红包已领取。',time:Date.now()}); this.saveMsgs() },500) },
+    playVoice(m){ if(m.text && 'speechSynthesis' in window){ const u=new SpeechSynthesisUtterance(m.text); u.lang='zh-CN'; speechSynthesis.cancel(); speechSynthesis.speak(u) } },
+    msgMenu(m){ this.openModal({title:'消息操作',body:'msgmenu',data:m}) },
+    chatAction(act){ this.actionPanel=false; if(act==='image'){ const i=document.createElement('input'); i.type='file'; i.accept='image/*'; i.onchange=e=>{ const f=e.target.files[0]; if(!f)return; const r=new FileReader(); r.onload=()=>{ this.msgs.push({id:uid('m'),sender:'me',type:'image',dataUrl:r.result,time:Date.now()}); this.saveMsgs() }; r.readAsDataURL(f) }; i.click() } else if(act==='transfer'){ this.openModal({title:'转账',body:'transfer'}) } else if(act==='redpacket'){ this.openModal({title:'发红包',body:'redpacket'}) } else if(act==='voicecall'||act==='videocall'){ this.msgs.push({id:uid('m'),sender:'me',type:'call',text:act==='voicecall'?'语音通话':'视频通话',time:Date.now()}); this.saveMsgs(); this.showToast('通话功能演示') } else if(act==='mind'){ const c=this.charByName(this.curChat&&this.curChat.name); this.showToast(c?(c.currentMind||c.monologue||'心里在想你'):'暂无角色') } },
+    sendVoice(){ const t=this.voiceText.trim(); if(!t)return; const dur=Math.max(1,Math.round(t.length/2.5)); this.msgs.push({id:uid('m'),sender:'me',type:'audio',text:t,duration:dur,time:Date.now()}); this.saveMsgs(); this.closeModal() },
+    sendLocation(){ const n=this.locName.trim(); if(!n)return; this.msgs.push({id:uid('m'),sender:'me',type:'location',text:n,time:Date.now()}); this.saveMsgs(); this.locName=''; this.closeModal() },
+    addSticker(){ const l=this.stickerLink.trim(),n=this.stickerNote.trim(); if(!l||!n){ this.showToast('请填写链接和说明'); return }; if(!/[\u4e00-\u9fa5]/.test(n)){ this.showToast('说明必须含汉字'); return }; this.stickers.unshift({link:l,note:n}); this.saveStickers(); this.stickerLink=''; this.stickerNote='' },
+    saveChatset(){ const c=this.charByName(this.curChat&&this.curChat.name); if(c){ c.note=this.chatsetNote; c.readNoReply=this.chatsetReadNoReply; this.saveChars() } this.closeModal(); this.showToast('已保存') },
+    // 查手机
+    openCharApp(a){ const c=this.char, p=this.profile.name||'你'; const name=c?c.name:'ta'; const msgs=c?store.get('msg_'+c.id,[]).slice(-5):[];
+      const maps={ notes:`<div class="text-xs text-slate-500 mb-2">ta 的便签</div>`+['给 '+p+' 准备了小惊喜','记住 ta 喜欢的那家店','有些话，见面再说'].map(t=>'<div class="px-4 py-3 border-b border-white/5 text-sm">'+esc(t)+'</div>').join(''),
+        diary:`<div class="text-xs text-slate-500 mb-2">ta 的日记</div>`+['今天和 '+p+' 聊天，时间过得特别快','梦见和 ta 一起散步'].map(t=>'<div class="px-4 py-3 border-b border-white/5 text-sm">'+esc(t)+'</div>').join(''),
+        wechat:`<div class="text-xs text-slate-500 mb-2">ta 的微信（与你实时对话）</div>`+(msgs.length?msgs.map(m=>'<div class="px-4 py-3 border-b border-white/5 text-sm">'+esc((m.sender==='me'?p:name)+'：'+msgPreview(m))+'</div>').join(''):'<div class="text-sm text-slate-500 p-4">还没有和 ta 聊天</div>'),
+        gallery:`<div class="text-xs text-slate-500 mb-2">ta 的相册</div>`+[1,2,3,4,5,6].map(i=>'<span class="inline-block w-16 h-16 rounded-lg bg-white/5 m-1"></span>').join(''),
+        contacts:`<div class="text-xs text-slate-500 mb-2">ta 的通讯录</div>`+['妈妈','最好的朋友','同事',p].map(n=>'<div class="px-4 py-3 border-b border-white/5 text-sm">'+esc(n)+'</div>').join(''),
+        messages:`<div class="text-xs text-slate-500 mb-2">ta 的短信</div>`+[{f:p,t:'到家了吗？'},{f:'快递',t:'包裹已到驿站'}].map(m=>'<div class="px-4 py-3 border-b border-white/5 text-sm">'+esc(m.f+'：'+m.t)+'</div>').join(''),
+        browser:`<div class="text-xs text-slate-500 mb-2">ta 的浏览记录</div>`+['如何准备一个惊喜',p+' 喜欢的东西'].map(t=>'<div class="px-4 py-3 border-b border-white/5 text-sm">'+esc(t)+'</div>').join(''),
+        music:`<div class="text-xs text-slate-500 mb-2">ta 最近听的歌</div>`+['你喜欢的歌单','睡前轻音乐'].map(t=>'<div class="px-4 py-3 border-b border-white/5 text-sm">'+esc(t)+'</div>').join('') };
+      this.charPhoneContent = maps[a] || '' },
+    // 共读
+    genFanfic(){ const t=this.fanficTopic.trim()||'一次重逢'; const c=this.char; let text='【'+t+'】\n\n那是一个下着小雨的黄昏。'+(c?c.name:'ta')+'站在街角的屋檐下，望着对面亮起的灯。你在人群里一眼就认出了那个身影。\n\n「原来，你也在这里。」'; this.fanfics.unshift({id:uid('f'),topic:t,text}); store.set('fanfics',this.fanfics); this.showToast('已生成') },
+    // 线下
+    offlineSend(){ const t=this.offlineDraft.trim(); if(!t)return; this.offlineMsgs.push({id:uid('t'),sender:'me',text:t}); const c=this.characters.find(x=>x.id===this.offlineChar); setTimeout(()=>{ const rep=this.offlineMode==='long'?(c?c.name+'缓缓抬起头，目光落在你身上。\n\n「'+trunc(t,40)+'……」'+c.name+'斟酌着开口，声音不大，却像带着温度。':'这里静悄悄的。'):(c?c.name+'：「'+trunc(t,20)+'……继续说。」':'在听。'); this.offlineMsgs.push({id:uid('t'),sender:'char',text:rep}) },800); this.offlineDraft='' },
+    // 音乐
+    playTrack(t){ if(t.url){ try{ new Audio(t.url).play() }catch(e){} } this.showToast('正在播放：'+t.name) },
+    // 转账/红包
+    doTransfer(){ const a=Number(this.trAmt||0).toFixed(2); if(a<=0){ this.showToast('请输入金额'); return }; this.msgs.push({id:uid('m'),sender:'me',type:'transfer',text:a,time:Date.now()}); this.saveMsgs(); this.closeModal() },
+    doRedPacket(){ const a=this.rpAmt.trim(); if(!a||Number(a)<=0){ this.showToast('请输入金额'); return }; this.msgs.push({id:uid('m'),sender:'me',type:'redpacket',text:a,opened:false,time:Date.now()}); this.saveMsgs(); this.closeModal() },
+  },
+  mounted(){
+    setInterval(()=>this.time=this.clock(),30000)
+    if(!this.profiles.length){ const p={id:uid('p'),name:'晓梦生',persona:'喜欢记录日常，观察细节',wechatId:'xm-sheng'}; this.profiles=[p]; this.activeProfile=p.id; store.rawSet('activeProfile',p.id); this.saveProfiles() }
+    this.ensureChats()
+  }
+}).mount('#app')
+</script>
 </body>
 </html>
