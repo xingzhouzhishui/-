@@ -127,6 +127,8 @@
   .fade-enter-from{opacity:0;transform:translateY(30px)}
   .fade-leave-to{opacity:0;transform:translateY(30px)}
 
+  @keyframes blink{0%,80%,100%{opacity:.25}40%{opacity:1}}
+
   .memory-bar{height:6px;border-radius:3px;background:#e5e5ea;overflow:hidden}
   .memory-bar i{display:block;height:100%;background:linear-gradient(90deg,#0a84ff,#34c759);transition:width .5s}
 
@@ -355,13 +357,27 @@
           <div class="af-header">
             <button class="af-back" @click="openApp=null"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
             <span class="af-title">{{ wechatTitle }}</span>
-            <span class="af-right"><button @click="showToast('添加（后续阶段）')">＋</button></span>
+            <span class="af-right"><button @click="addContact">＋</button></span>
           </div>
           <div class="af-body" style="padding:0">
-            <!-- 微信 tab -->
-            <div v-if="activeTab==='chats'" style="padding:20px;text-align:center;color:#8e8e93;font-size:14px;padding-top:60px">聊天列表（后续阶段实装）</div>
+            <!-- 微信 tab：会话列表 -->
+            <div v-if="activeTab==='chats'">
+              <div v-if="!data.chatContacts.length" style="padding:60px 20px;text-align:center;color:#8e8e93;font-size:14px">暂无联系人，点右上角「＋」添加 AI 小号</div>
+              <div v-for="c in data.chatContacts" :key="c.id" class="row" style="padding:14px 16px" @click="openChat(c.id)">
+                <span style="width:48px;height:48px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:18px;flex-shrink:0" :style="{background:c.color}">{{ c.name[0] }}</span>
+                <span class="ri"><span class="t">{{ c.name }}</span><span class="s">{{ (c.messages.slice(-1)[0] || {}).text || '开始聊天吧' }}</span></span>
+                <span class="chev">›</span>
+              </div>
+            </div>
             <!-- 通讯录 tab -->
-            <div v-else-if="activeTab==='contacts'" style="padding:20px;text-align:center;color:#8e8e93;font-size:14px;padding-top:60px">通讯录（后续阶段实装）</div>
+            <div v-else-if="activeTab==='contacts'">
+              <div v-if="!data.chatContacts.length" style="padding:60px 20px;text-align:center;color:#8e8e93;font-size:14px">暂无联系人</div>
+              <div v-for="c in data.chatContacts" :key="c.id" class="row" style="padding:14px 16px" @click="openChat(c.id)">
+                <span style="width:44px;height:44px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;flex-shrink:0" :style="{background:c.color}">{{ c.name[0] }}</span>
+                <span class="ri"><span class="t">{{ c.name }}</span></span>
+                <span class="chev">›</span>
+              </div>
+            </div>
             <!-- 发现 tab -->
             <div v-else-if="activeTab==='discover'" style="padding:10px 16px">
               <div class="group-title" style="margin-top:4px">发现</div>
@@ -494,6 +510,111 @@
               <button class="btn btn-ghost" style="flex:1" @click="showCommentBox=false">取消</button>
               <button class="btn" style="flex:1" @click="submitComment">发送</button>
             </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ============ 聊天室 (ChatRoom) ============ -->
+      <transition name="fade">
+        <div v-if="chatOpen" class="app-full" style="z-index:1300">
+          <div class="af-header">
+            <button class="af-back" @click="chatOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <div class="header-title-wrap" style="flex:1;text-align:center;min-width:0">
+              <div style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ activeContact ? activeContact.name : '' }}</div>
+              <button @click="showMaskPicker=true" style="background:none;border:none;color:#8e8e93;font-size:11px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px">
+                <span style="width:14px;height:14px;border-radius:4px;display:inline-block" :style="{background: (maskById(data.activeMaskId)||{}).color || '#8e8e93'}"></span>
+                {{ (maskById(data.activeMaskId)||{}).name || '面具' }} ▾
+              </button>
+            </div>
+            <span class="af-right" style="width:34px"></span>
+          </div>
+          <div class="af-body" style="padding:0;display:flex;flex-direction:column">
+            <!-- 消息流 -->
+            <div style="flex:1;overflow-y:auto;padding:14px 14px 8px;background:#ededed;-webkit-overflow-scrolling:touch">
+              <div v-for="m in (activeContact ? activeContact.messages : [])" :key="m.id" style="display:flex;margin-bottom:12px" :style="{justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start'}" @mousedown="msgPressStart(m.id)" @mouseup="msgPressEnd" @mouseleave="msgPressEnd" @touchstart="msgPressStart(m.id)" @touchend="msgPressEnd" @touchmove="msgPressEnd" @contextmenu.prevent="actionMsgId=m.id" @dblclick="m.sender==='user' && !m.recalled && startEdit(m.id)">
+                <!-- AI 头像 -->
+                <span v-if="m.sender==='ai'" style="width:38px;height:38px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-right:8px" :style="{background: activeContact ? activeContact.color : '#999'}">{{ activeContact ? activeContact.name[0] : '?' }}</span>
+                <div style="max-width:74%">
+                  <!-- 撤回提示 -->
+                  <div v-if="m.recalled" style="background:rgba(0,0,0,0.06);border-radius:8px;padding:8px 12px;font-size:13px;color:#8e8e93">
+                    你撤回了一条消息 <a @click="viewRecalled(m.id)" style="color:#576b95;cursor:pointer;text-decoration:underline">[点击查看]</a>
+                  </div>
+                  <template v-else>
+                    <div v-if="editingMsgId===m.id" style="background:#fff;border-radius:10px;padding:8px;box-shadow:0 1px 3px rgba(0,0,0,0.1)">
+                      <input v-model="editText" style="border:none;outline:none;font-size:14px;width:100%;color:#1c1c1e">
+                      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:6px">
+                        <button @click="editingMsgId=null" style="background:none;border:none;color:#8e8e93;font-size:12px;cursor:pointer">取消</button>
+                        <button @click="saveEdit" style="background:none;border:none;color:#07c160;font-size:12px;cursor:pointer">保存</button>
+                      </div>
+                    </div>
+                    <div v-else style="padding:9px 13px;border-radius:8px;font-size:14px;line-height:1.5;word-break:break-word" :style="m.sender==='user' ? 'background:#95ec69;border-top-right-radius:2px' : 'background:#fff;border-top-left-radius:2px'">{{ m.text }}</div>
+                    <!-- 心声折叠面板 -->
+                    <div v-if="m.sender==='ai' && showThoughts && m.thought" style="margin-top:4px;background:rgba(255,255,255,0.55);border-radius:8px;padding:7px 10px;font-size:12px;font-style:italic;color:#6b6b6b">{{ m.thought }}</div>
+                  </template>
+                </div>
+                <!-- User 面具头像 -->
+                <span v-if="m.sender==='user'" style="width:38px;height:38px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-left:8px" :style="{background: (maskById(m.maskId)||{}).color || '#8e8e93'}">{{ (maskById(m.maskId)||{}).name ? (maskById(m.maskId).name[0]) : '我' }}</span>
+              </div>
+              <!-- 正在输入 -->
+              <div v-if="typing" style="display:flex;margin-bottom:12px">
+                <span style="width:38px;height:38px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-right:8px" :style="{background: activeContact ? activeContact.color : '#999'}">{{ activeContact ? activeContact.name[0] : '?' }}</span>
+                <div style="background:#fff;border-radius:8px;border-top-left-radius:2px;padding:10px 14px;display:flex;gap:4px"><span style="width:6px;height:6px;border-radius:50%;background:#bbb;animation:blink 1.2s infinite"></span><span style="width:6px;height:6px;border-radius:50%;background:#bbb;animation:blink 1.2s infinite .2s"></span><span style="width:6px;height:6px;border-radius:50%;background:#bbb;animation:blink 1.2s infinite .4s"></span></div>
+              </div>
+            </div>
+            <!-- "+" 抽屉面板 -->
+            <transition name="fade">
+              <div v-if="drawerOpen" style="height:220px;background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-top:1px solid #e5e5ea;flex-shrink:0;padding:16px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;align-content:start">
+                <button v-for="d in drawerItems" :key="d.n" @click="d.f" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer">
+                  <span style="width:50px;height:50px;border-radius:14px;background:#f2f2f7;display:flex;align-items:center;justify-content:center;font-size:20px;color:#1c1c1e;font-weight:600">{{ d.i }}</span>
+                  <span style="font-size:11px;color:#1c1c1e">{{ d.n }}</span>
+                </button>
+              </div>
+            </transition>
+            <!-- 输入栏 -->
+            <div style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:#f7f7f7;border-top:1px solid #e5e5ea;flex-shrink:0">
+              <button @click="showToast('语音（占位）')" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;cursor:pointer">♫</button>
+              <input v-model="chatInput" @keydown.enter="sendChat" placeholder="发送消息" style="flex:1;border:none;outline:none;background:#fff;border-radius:18px;padding:8px 14px;font-size:14px;color:#1c1c1e">
+              <button @click="drawerOpen=!drawerOpen" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;font-size:22px;cursor:pointer">＋</button>
+              <button @click="sendChat" style="padding:6px 14px;border:none;border-radius:6px;background:#07c160;color:#fff;font-size:14px;cursor:pointer">发送</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 消息长按操作面板 -->
+      <transition name="fade">
+        <div v-if="actionMsgId" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:16px;width:80%;max-width:300px;overflow:hidden;color:#1c1c1e">
+            <button v-if="actionMsg && actionMsg.sender==='user' && !actionMsg.recalled" @click="recallMessage(actionMsgId)" style="display:block;width:100%;padding:14px;border:none;border-bottom:1px solid #f0f0f3;background:none;font-size:15px;cursor:pointer;color:#1c1c1e">撤回</button>
+            <button v-if="actionMsg && actionMsg.sender==='user' && !actionMsg.recalled" @click="startEdit(actionMsgId)" style="display:block;width:100%;padding:14px;border:none;border-bottom:1px solid #f0f0f3;background:none;font-size:15px;cursor:pointer;color:#1c1c1e">修改</button>
+            <button @click="eraseMessage(actionMsgId)" style="display:block;width:100%;padding:14px;border:none;border-bottom:1px solid #f0f0f3;background:none;font-size:15px;cursor:pointer;color:#ff3b30">删除记忆</button>
+            <button @click="actionMsgId=null" style="display:block;width:100%;padding:14px;border:none;background:none;font-size:15px;cursor:pointer;color:#8e8e93">取消</button>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 撤回内容提示 -->
+      <transition name="fade">
+        <div v-if="showRecallModal" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:16px;padding:20px;width:82%;max-width:320px;color:#1c1c1e;text-align:center">
+            <div style="font-size:13px;color:#8e8e93;margin-bottom:10px">被撤回的内容</div>
+            <div style="font-size:15px;line-height:1.6;margin-bottom:16px">{{ recalledText }}</div>
+            <button class="btn" style="width:100%" @click="showRecallModal=false">知道了</button>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 面具选择 -->
+      <transition name="fade">
+        <div v-if="showMaskPicker" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:16px;padding:20px;width:84%;max-width:320px;color:#1c1c1e">
+            <h3 style="margin:0 0 14px;font-size:17px">切换 User 面具</h3>
+            <div v-for="m in data.userMasks" :key="m.id" class="row" @click="data.activeMaskId=m.id;showMaskPicker=false">
+              <span style="width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;flex-shrink:0" :style="{background:m.color}">{{ m.name[0] }}</span>
+              <span class="ri"><span class="t">{{ m.name }}</span></span>
+              <span v-if="m.id===data.activeMaskId" style="color:#07c160">✓</span>
+            </div>
+            <button class="btn btn-block" style="margin-top:12px" @click="addMask">＋ 新建面具</button>
           </div>
         </div>
       </transition>
@@ -713,7 +834,13 @@ const DEFAULT_DATA = {
     { id:'m1', name:'林晚', color:'#d98866', text:'傍晚路过街角的旧书店，玻璃窗上沾着雨，像谁没说完的话。', images:[], time: Date.now()-3600000, likes:3, liked:false, comments:[{ name:'苏晴', text:'下次一起去。' }] },
     { id:'m2', name:'苏晴', color:'#6a8fb5', text:'煮了一壶茶，等一个会迟到的人。', images:[], time: Date.now()-7200000, likes:6, liked:false, comments:[] }
   ],
-  momentsCover:'', stickerLibrary:[]
+  momentsCover:'', stickerLibrary:[],
+  chatContacts:[
+    { id:'c1', name:'林晚', color:'#d98866', messages:[] },
+    { id:'c2', name:'苏晴', color:'#6a8fb5', messages:[] }
+  ],
+  userMasks:[ { id:'mask_default', name:'我', color:'#8e8e93' } ],
+  activeMaskId:'mask_default'
 }
 
 createApp({
@@ -737,6 +864,14 @@ createApp({
     const showCommentBox = ref(false), commentTargetId = ref(null), commentText = ref('')
     const momentActionId = ref(null)
 
+    // 聊天室
+    const chatOpen = ref(false), activeContactId = ref(null), drawerOpen = ref(false)
+    const typing = ref(false), chatInput = ref('')
+    const editingMsgId = ref(null), editText = ref('')
+    const showThoughts = ref(true), actionMsgId = ref(null)
+    const showRecallModal = ref(false), recalledText = ref('')
+    const showMaskPicker = ref(false)
+
     let saved = null; try{ saved = JSON.parse(localStorage.getItem(LS_KEY)) }catch(e){ saved = null }
     const data = reactive(Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), saved || {}))
     // 深合并嵌套对象
@@ -757,6 +892,10 @@ createApp({
     if(!Array.isArray(data.momentsData)) data.momentsData = DEFAULT_DATA.momentsData
     if(!Array.isArray(data.stickerLibrary)) data.stickerLibrary = []
     if(typeof data.momentsCover !== 'string') data.momentsCover = ''
+    if(!Array.isArray(data.chatContacts)) data.chatContacts = DEFAULT_DATA.chatContacts
+    if(!Array.isArray(data.userMasks)) data.userMasks = DEFAULT_DATA.userMasks
+    if(!data.activeMaskId) data.activeMaskId = 'mask_default'
+    data.chatContacts.forEach(c => { if(!Array.isArray(c.messages)) c.messages = [] })
 
     let toastTimer = null
     const showToast = (m) => { toast.value = m; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 1600) }
@@ -960,6 +1099,98 @@ createApp({
     const exportStickers = () => { const blob = new Blob([JSON.stringify(data.stickerLibrary, null, 2)], { type:'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'stickers.json'; a.click(); URL.revokeObjectURL(a.href) }
     const importStickers = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { try{ const arr = JSON.parse(r.result); if(Array.isArray(arr)){ arr.forEach(s => data.stickerLibrary.push({ id:'st'+Date.now()+Math.random().toString(36).slice(2,5), src:s.src||s, name:s.name||'导入表情' })); showToast('已导入 ' + arr.length + ' 个') } }catch(err){ showToast('导入失败') } }; r.readAsText(f); e.target.value = '' }
 
+    // ============ 微信聊天室 ============
+    const activeContact = computed(() => data.chatContacts.find(c => c.id === activeContactId.value) || null)
+    const maskById = (id) => data.userMasks.find(m => m.id === id)
+    const actionMsg = computed(() => { const c = activeContact.value; if(!c || !actionMsgId.value) return null; return c.messages.find(x => x.id === actionMsgId.value) })
+    const aiReplyTexts = [
+      { text:'嗯，我在听。', thought:'他今天的话似乎比平时多，也许有想对我说的事。' },
+      { text:'然后呢？继续。', thought:'想听他说下去，又不想显得太急切。' },
+      { text:'这样啊……', thought:'原来他是这么想的，我默默记下了。' },
+      { text:'我在。', thought:'只要他开口，我就在。' }
+    ]
+    const openChat = (id) => { activeContactId.value = id; chatOpen.value = true; drawerOpen.value = false }
+    const triggerAiReply = () => {
+      const contact = activeContact.value; if(!contact) return
+      typing.value = true
+      setTimeout(() => {
+        typing.value = false
+        const r = aiReplyTexts[Math.floor(Math.random()*aiReplyTexts.length)]
+        contact.messages.push({ id:'msg'+Date.now(), sender:'ai', text:r.text, thought:r.thought, time:Date.now() })
+      }, 2000)
+    }
+    const sendChat = () => {
+      const contact = activeContact.value; if(!contact) return
+      const t = chatInput.value.trim(); if(!t) return
+      contact.messages.push({ id:'msg'+Date.now(), sender:'user', text:t, maskId: data.activeMaskId, time:Date.now() })
+      chatInput.value = ''
+      triggerAiReply()
+    }
+    // 新增联系人 / 面具
+    const addContact = () => { const n = prompt('AI 小号名称：'); if(!n) return; data.chatContacts.push({ id:'c'+Date.now(), name:n.trim(), color:'#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'), messages:[] }) }
+    const addMask = () => { const n = prompt('User 面具名称：'); if(!n) return; const m = { id:'mask'+Date.now(), name:n.trim(), color:'#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0') }; data.userMasks.push(m); data.activeMaskId = m.id; showMaskPicker.value = false }
+    // 【重回】删除最后一条 AI 消息并重新生成
+    const regenerate = () => {
+      const contact = activeContact.value; if(!contact) return
+      drawerOpen.value = false
+      for(let i=contact.messages.length-1;i>=0;i--){ if(contact.messages[i].sender==='ai'){ contact.messages.splice(i,1); break } }
+      triggerAiReply()
+    }
+    // 【心声】切换心声折叠面板显隐
+    const toggleThoughts = () => { showThoughts.value = !showThoughts.value; drawerOpen.value = false; showToast(showThoughts.value ? '心声已展开' : '心声已收起') }
+    // 【修改】双击消息进入原地编辑
+    const startEdit = (id) => {
+      const contact = activeContact.value; if(!contact) return
+      const m = contact.messages.find(x => x.id === id); if(!m || m.sender !== 'user' || m.recalled) return
+      editingMsgId.value = id; editText.value = m.text; actionMsgId.value = null
+    }
+    const saveEdit = () => {
+      const contact = activeContact.value; if(!contact) return
+      const m = contact.messages.find(x => x.id === editingMsgId.value); if(!m) return
+      m.text = editText.value.trim()
+      const idx = contact.messages.indexOf(m)
+      contact.messages = contact.messages.slice(0, idx+1).concat(contact.messages.slice(idx+1).filter(x => x.sender !== 'ai'))
+      editingMsgId.value = null
+      triggerAiReply()
+    }
+    // 【撤回】带备份
+    const recallMessage = (id) => {
+      const contact = activeContact.value; if(!contact) return
+      const m = contact.messages.find(x => x.id === id); if(!m || m.sender !== 'user') return
+      m.recalled = true; m.recalledText = m.text; m.text = ''
+      actionMsgId.value = null
+    }
+    const viewRecalled = (id) => {
+      const contact = activeContact.value; if(!contact) return
+      const m = contact.messages.find(x => x.id === id); if(!m) return
+      recalledText.value = m.recalledText || ''
+      showRecallModal.value = true
+    }
+    // 【删除记忆】物理抹除
+    const eraseMessage = (id) => {
+      const contact = activeContact.value; if(!contact) return
+      contact.messages = contact.messages.filter(x => x.id !== id)
+      actionMsgId.value = null
+    }
+    const eraseAll = () => { if(!confirm('清除全部对话记忆？AI 将彻底遗忘这段对话')) return; const c = activeContact.value; if(c) c.messages = []; drawerOpen.value = false }
+    const drawerItems = computed(() => {
+      const c = activeContact.value
+      return [
+        { i:'照', n:'照片', f:()=>showToast('照片（占位）') },
+        { i:'拍', n:'拍摄', f:()=>showToast('拍摄（占位）') },
+        { i:'话', n:'语音通话', f:()=>showToast('语音通话（占位）') },
+        { i:'视', n:'视频通话', f:()=>showToast('视频通话（占位）') },
+        { i:'重', n:'重回', f:regenerate },
+        { i:'心', n:'心声', f:toggleThoughts },
+        { i:'改', n:'修改', f:()=>{ const lu = c ? [...c.messages].reverse().find(x=>x.sender==='user'&&!x.recalled) : null; if(lu) startEdit(lu.id); else showToast('双击用户消息可修改') } },
+        { i:'删', n:'删除记忆', f:eraseAll }
+      ]
+    })
+    // 消息长按
+    let mpTimer = null
+    const msgPressStart = (id) => { mpTimer = setTimeout(() => { actionMsgId.value = id }, 550) }
+    const msgPressEnd = () => { clearTimeout(mpTimer) }
+
     // 内存监控
     const memoryMB = ref(0)
     const memoryPercent = ref(0)
@@ -994,12 +1225,15 @@ createApp({
       iconEditing, presetEditing, wbEditing, showPresetForm, showWbForm, presetForm, wbFormData, keepAliveTick,
       wbSearch, showCatForm, showImportMenu, catFormData, filteredCategories,
       activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
+      chatOpen, activeContactId, drawerOpen, typing, chatInput, editingMsgId, editText, showThoughts, actionMsgId, showRecallModal, recalledText, showMaskPicker,
+      activeContact, maskById, actionMsg,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
       statusColor, homeIndicatorColor, memoryText, memoryPercent, activePresetName, settingsTitle,
       tapApp, longPressStart, longPressEnd, editIcon, onIconFile, saveIcon, clearIcon, onWallUpload, pickFont, applyFontUrl, onFontFile,
       settingsBack, editPreset, savePreset, closePresetForm, activatePreset,
       catForm, saveCat, catDel, catToggle, wbForm, saveWb, closeWbForm, wbDel, toggleEntry, importSillyTavern, importCSV,
       toggleLike, openComment, submitComment, onCoverUpload, addStickerLocal, addStickerUrl, delSticker, exportStickers, importStickers, timeAgo,
+      openChat, triggerAiReply, sendChat, addContact, addMask, regenerate, toggleThoughts, startEdit, saveEdit, recallMessage, viewRecalled, eraseMessage, eraseAll, msgPressStart, msgPressEnd, drawerItems,
       toggleKeepAlive, exportBackup, importBackup, onScroll, pagesRef }
   }
 }).mount('#app')
