@@ -1235,7 +1235,7 @@ const DEFAULT_DATA = {
   icons:{}, apiPresets:[], activePresetId:'',
   minimax:{ groupId:'', apiKey:'', voiceId:'male-qn-qingse', speed:1.0, pitch:0 },
   imageGen:{ apiUrl:'', promptTemplate:'', resolution:'1024x1024' },
-  keepAlive:false, worldbooks:[],
+  keepAlive:false, worldbooks:[], availableModels:[],
   momentsData:[
     { id:'m1', name:'林晚', color:'#d98866', text:'傍晚路过街角的旧书店，玻璃窗上沾着雨，像谁没说完的话。', images:[], time: Date.now()-3600000, likes:3, liked:false, comments:[{ name:'苏晴', text:'下次一起去。' }] },
     { id:'m2', name:'苏晴', color:'#6a8fb5', text:'煮了一壶茶，等一个会迟到的人。', images:[], time: Date.now()-7200000, likes:6, liked:false, comments:[] }
@@ -1306,6 +1306,7 @@ createApp({
     data.imageGen = Object.assign({ ...DEFAULT_DATA.imageGen }, data.imageGen)
     if(!Array.isArray(data.apiPresets)) data.apiPresets = []
     if(!Array.isArray(data.worldbooks)) data.worldbooks = []
+    if(!Array.isArray(data.availableModels)) data.availableModels = []
     // 迁移：旧版平铺条目 → 包裹进「默认板块」板块
     if(data.worldbooks.length && !Array.isArray(data.worldbooks[0].entries)){
       const old = data.worldbooks
@@ -1644,8 +1645,12 @@ createApp({
       if(s <= e) return cur >= s && cur <= e
       return cur >= s || cur <= e
     }
-    const availableModels = ref([])
-    const apiEndpoint = (base, path) => (base || '').replace(/\/+$/, '') + path
+    const availableModels = ref(data.availableModels || [])
+    const apiEndpoint = (base, path) => {
+      let b = (base || '').replace(/\/+$/, '')
+      if(/\/v1$/.test(b) && path.indexOf('/v1') === 0) b = b.replace(/\/v1$/, '')
+      return b + path
+    }
     const testApiConnection = () => {
       const preset = data.apiPresets.find(p => p.id === data.activePresetId)
       const base = preset && preset.baseUrl
@@ -1653,7 +1658,7 @@ createApp({
       if(!base){ showToast('请先在预设中填写 Base URL'); return }
       fetch(apiEndpoint(base, '/v1/models'), { headers: { 'Authorization': 'Bearer ' + (key || '') } })
         .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
-        .then(j => { const list = (j.data || []).map(m => m.id).filter(Boolean); availableModels.value = list; if(list.length) showToast('连接成功，已拉取 ' + list.length + ' 个模型'); else showToast('连接成功，但未返回模型列表') })
+        .then(j => { const list = (j.data || []).map(m => m.id).filter(Boolean); availableModels.value = list; data.availableModels = list; if(list.length) showToast('连接成功，已拉取 ' + list.length + ' 个模型'); else showToast('连接成功，但未返回模型列表') })
         .catch(err => { availableModels.value = []; showToast('连接失败：' + err.message) })
     }
     const resolveApi = (altId) => {
