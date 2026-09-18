@@ -137,10 +137,6 @@
     .btn-hardware{display:none}
     .dynamic-island{top:env(safe-area-inset-top,8px)}
   }
-
-  /* 右侧滑入过渡（聊天设置页） */
-  .slide-enter-active,.slide-leave-active{transition:transform .3s cubic-bezier(.32,.72,.24,1)}
-  .slide-enter-from,.slide-leave-to{transform:translateX(100%)}
 </style>
 </head>
 <body>
@@ -353,6 +349,155 @@
         </div>
       </transition>
 
+      <!-- ============ 微信 App ============ -->
+      <transition name="fade">
+        <div v-if="openApp==='wechat'" class="app-full">
+          <div class="af-header">
+            <button class="af-back" @click="openApp=null"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">{{ wechatTitle }}</span>
+            <span class="af-right"><button @click="showToast('添加（后续阶段）')">＋</button></span>
+          </div>
+          <div class="af-body" style="padding:0">
+            <!-- 微信 tab -->
+            <div v-if="activeTab==='chats'" style="padding:20px;text-align:center;color:#8e8e93;font-size:14px;padding-top:60px">聊天列表（后续阶段实装）</div>
+            <!-- 通讯录 tab -->
+            <div v-else-if="activeTab==='contacts'" style="padding:20px;text-align:center;color:#8e8e93;font-size:14px;padding-top:60px">通讯录（后续阶段实装）</div>
+            <!-- 发现 tab -->
+            <div v-else-if="activeTab==='discover'" style="padding:10px 16px">
+              <div class="group-title" style="margin-top:4px">发现</div>
+              <div class="card">
+                <button class="row" @click="momentsOpen=true"><span class="ri"><span class="t">朋友圈</span><span class="s">好友们的最新动态</span></span><span class="chev">›</span></button>
+                <div class="row"><span class="ri"><span class="t">扫一扫</span></span><span class="chev">›</span></div>
+                <div class="row"><span class="ri"><span class="t">搜一搜</span></span><span class="chev">›</span></div>
+              </div>
+              <div class="group-title">小程序</div>
+              <div class="card">
+                <div class="row"><span class="ri"><span class="t">网易云音乐</span></span><span class="chev">›</span></div>
+                <div class="row"><span class="ri"><span class="t">世界书</span></span><span class="chev">›</span></div>
+              </div>
+            </div>
+            <!-- 我 tab -->
+            <div v-else-if="activeTab==='me'" style="padding:10px 16px">
+              <div class="card" style="padding:0">
+                <div class="row" style="padding:20px 16px">
+                  <span style="width:58px;height:58px;border-radius:14px;background:linear-gradient(160deg,#8e8e93,#636366);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;flex-shrink:0">我</span>
+                  <span class="ri"><span class="t" style="font-size:17px">我</span><span class="s">微信号：wxid_demo</span></span>
+                  <span class="chev">›</span>
+                </div>
+              </div>
+              <div class="group-title">功能</div>
+              <div class="card">
+                <button class="row" @click="stickersOpen=true"><span class="ri"><span class="t">表情</span><span class="s">{{ data.stickerLibrary.length }} 个表情</span></span><span class="chev">›</span></button>
+                <div class="row"><span class="ri"><span class="t">收藏</span></span><span class="chev">›</span></div>
+                <div class="row"><span class="ri"><span class="t">设置</span></span><span class="chev">›</span></div>
+              </div>
+            </div>
+          </div>
+          <!-- TabBar -->
+          <div style="display:flex;background:#f7f7f7;border-top:1px solid #e5e5ea;flex-shrink:0;padding-bottom:env(safe-area-inset-bottom,0px)">
+            <button v-for="t in [{id:'chats',n:'微信'},{id:'contacts',n:'通讯录'},{id:'discover',n:'发现'},{id:'me',n:'我'}]" :key="t.id" @click="activeTab=t.id" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 6px;background:none;border:none;cursor:pointer">
+              <span :style="{color: activeTab===t.id ? '#07c160' : '#8e8e93', fontSize:'11px', fontWeight: activeTab===t.id ? '600' : '400'}">{{ t.n }}</span>
+            </button>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 朋友圈页面（覆盖 TabBar） -->
+      <transition name="fade">
+        <div v-if="momentsOpen" class="app-full" style="z-index:1300">
+          <div class="af-header">
+            <button class="af-back" @click="momentsOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">朋友圈</span>
+            <span class="af-right"><label style="cursor:pointer;color:#007aff;font-size:15px">相册<input type="file" accept="image/*" hidden @change="onCoverUpload"></label></span>
+          </div>
+          <div class="af-body" style="padding:0">
+            <!-- 封面 -->
+            <div style="position:relative;height:200px;overflow:hidden;background:linear-gradient(160deg,#6a8fb5,#3b5a7a)" @click="$refs.coverInput.click()">
+              <img v-if="data.momentsCover" :src="data.momentsCover" style="width:100%;height:100%;object-fit:cover">
+              <div style="position:absolute;right:14px;bottom:12px;display:flex;align-items:flex-end;gap:10px">
+                <span style="color:#fff;font-size:16px;font-weight:600;text-shadow:0 1px 3px rgba(0,0,0,.4)">我</span>
+                <span style="width:52px;height:52px;border-radius:10px;background:linear-gradient(160deg,#8e8e93,#636366);border:2px solid #fff;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:600">我</span>
+              </div>
+              <input type="file" accept="image/*" hidden ref="coverInput" @change="onCoverUpload">
+            </div>
+            <!-- 动态列表 -->
+            <div v-for="m in data.momentsData" :key="m.id" style="background:#fff;padding:14px 16px;border-bottom:1px solid #f0f0f3">
+              <div style="display:flex;gap:10px">
+                <span style="width:42px;height:42px;border-radius:8px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px" :style="{background: m.color}">{{ m.name[0] }}</span>
+                <div style="flex:1;min-width:0">
+                  <div style="font-size:15px;font-weight:600;color:#576b95">{{ m.name }}</div>
+                  <div style="font-size:14px;color:#1c1c1e;margin-top:6px;line-height:1.5">{{ m.text }}</div>
+                  <div v-if="m.images && m.images.length" style="display:grid;gap:6px;margin-top:8px" :style="{gridTemplateColumns: m.images.length===1 ? '1fr' : 'repeat(3,1fr)'}">
+                    <img v-for="(img,i) in m.images" :key="i" :src="img" style="width:100%;height:100px;object-fit:cover;border-radius:6px">
+                  </div>
+                  <div style="display:flex;align-items:center;gap:10px;margin-top:10px">
+                    <span style="font-size:11px;color:#b2b2b2">{{ timeAgo(m.time) }}</span>
+                    <span style="flex:1"></span>
+                    <button @click="momentActionId = momentActionId===m.id ? null : m.id" style="background:none;border:none;cursor:pointer;color:#576b95;font-size:12px">···</button>
+                  </div>
+                  <!-- 点赞/评论气泡 -->
+                  <div v-if="momentActionId===m.id" style="display:flex;gap:8px;margin-top:8px;background:#f7f7f7;border-radius:8px;padding:8px 10px">
+                    <button @click="toggleLike(m.id)" style="background:none;border:none;cursor:pointer;font-size:13px;color:#576b95">{{ m.liked ? '取消赞' : '赞' }}</button>
+                    <span style="width:1px;background:#e5e5ea"></span>
+                    <button @click="openComment(m.id)" style="background:none;border:none;cursor:pointer;font-size:13px;color:#576b95">评论</button>
+                  </div>
+                  <!-- 已有点赞/评论 -->
+                  <div v-if="m.likes || m.comments.length" style="margin-top:8px;background:#f7f7f7;border-radius:6px;padding:6px 10px">
+                    <div v-if="m.likes" style="font-size:12px;color:#576b95;display:flex;align-items:center;gap:4px"><span style="color:#e0554f">♥</span> {{ m.likes }}</div>
+                    <div v-for="(c,i) in m.comments" :key="i" style="font-size:12px;color:#1c1c1e;margin-top:2px"><span style="color:#576b95;font-weight:500">{{ c.name }}：</span>{{ c.text }}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 表情包管理器页面 -->
+      <transition name="fade">
+        <div v-if="stickersOpen" class="app-full" style="z-index:1300">
+          <div class="af-header">
+            <button class="af-back" @click="stickersOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">表情</span>
+            <span class="af-right"></span>
+          </div>
+          <div class="af-body">
+            <div class="group-title" style="margin-top:4px">添加的单个表情</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+              <label style="aspect-ratio:1;border:1px dashed #c7c7cc;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8e8e93;font-size:28px;cursor:pointer">＋<input type="file" accept="image/*" hidden @change="addStickerLocal"></label>
+              <div v-for="s in data.stickerLibrary" :key="s.id" style="position:relative;aspect-ratio:1;border-radius:12px;overflow:hidden;background:#f2f2f7">
+                <img :src="s.src" style="width:100%;height:100%;object-fit:cover">
+                <button @click="delSticker(s.id)" style="position:absolute;top:4px;right:4px;width:20px;height:20px;border-radius:50%;background:rgba(0,0,0,.5);color:#fff;border:none;font-size:12px;line-height:1;cursor:pointer">×</button>
+                <span v-if="s.name" style="position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:9px;color:#fff;background:rgba(0,0,0,.35);padding:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.name }}</span>
+              </div>
+            </div>
+            <div v-if="!data.stickerLibrary.length" style="text-align:center;color:#8e8e93;font-size:13px;padding:20px">点击「＋」上传本地图片，或下方输入 URL 导入</div>
+
+            <div class="group-title">表情管理</div>
+            <div class="card">
+              <div class="row"><span class="ri"><span class="t">网络图片 URL 导入</span></span><input type="text" v-model="stickerUrlInput" placeholder="https://.../x.png" style="text-align:right"></div>
+              <button class="row" @click="addStickerUrl"><span class="ri"><span class="t">添加 URL 表情</span></span><span class="chev">›</span></button>
+              <button class="row" @click="exportStickers"><span class="ri"><span class="t">导出表情包（.json）</span></span><span class="chev">›</span></button>
+              <label class="row"><span class="ri"><span class="t">导入表情包文件</span></span><input type="file" accept=".json" hidden @change="importStickers"><span class="chev">›</span></label>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- 评论弹窗 -->
+      <transition name="fade">
+        <div v-if="showCommentBox" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:#fff;border-radius:18px;padding:20px;width:86%;max-width:320px;color:#1c1c1e">
+            <h3 style="margin:0 0 16px;font-size:17px">评论</h3>
+            <input type="text" v-model="commentText" placeholder="写下你的评论..." style="width:100%;padding:11px 13px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none">
+            <div style="display:flex;gap:10px;margin-top:16px">
+              <button class="btn btn-ghost" style="flex:1" @click="showCommentBox=false">取消</button>
+              <button class="btn" style="flex:1" @click="submitComment">发送</button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
       <!-- ============ 世界书 App ============ -->
       <transition name="fade">
         <div v-if="openApp==='worldbook'" class="app-full">
@@ -411,136 +556,6 @@
           </div>
         </div>
       </transition>
-
-      <!-- ============ 微信 App ============ -->
-      <div v-if="openApp==='wechat'" class="app-full" style="background:#ededed">
-
-        <!-- 视图1：消息列表 -->
-        <template v-if="wechatView==='list'">
-          <div style="display:flex;align-items:center;gap:4px;padding:14px 10px 10px;background:rgba(237,237,237,0.95);backdrop-filter:blur(20px);flex-shrink:0;min-height:52px">
-            <button style="width:34px;height:34px;background:none;border:none;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" @click="openApp=null"><svg width="22" height="22" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-            <span style="flex:1;text-align:center;font-size:17px;font-weight:600;color:#1c1c1e">微信</span>
-            <button style="width:34px;height:34px;background:none;border:none;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" @click="altForm(null)"><svg width="24" height="24" viewBox="0 0 24 24" style="fill:currentColor"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-          </div>
-          <div style="background:#ededed;padding:6px 12px 10px;flex-shrink:0">
-            <div style="background:#fff;border-radius:8px;display:flex;align-items:center;gap:6px;padding:7px 12px">
-              <svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:#b2b6bd;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input v-model="chatSearch" placeholder="搜索" style="flex:1;border:none;outline:none;font-size:14px;background:transparent;color:#1c1c1e">
-            </div>
-          </div>
-          <div style="flex:1;overflow-y:auto;background:#fff;-webkit-overflow-scrolling:touch">
-            <div v-if="!filteredSessions.length" style="text-align:center;color:#b2b6bd;padding-top:80px;font-size:13px">暂无会话，点右上角 + 添加 AI 小号</div>
-            <div v-for="s in filteredSessions" :key="s.id" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid #f0f0f0;cursor:pointer" @click="openSession(s.id)">
-              <img v-if="altOf(s).avatar" :src="altOf(s).avatar" style="width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0">
-              <div v-else style="width:48px;height:48px;border-radius:8px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;color:#8e8e93;font-weight:600;flex-shrink:0">{{ (altOf(s).name||'?')[0] }}</div>
-              <div style="flex:1;min-width:0">
-                <div style="display:flex;justify-content:space-between;align-items:center">
-                  <span style="font-size:16px;font-weight:500;color:#1c1c1e">{{ altOf(s).remark || altOf(s).name }}</span>
-                  <span style="font-size:11px;color:#b2b6bd">{{ fmtTime(s.timestamp) }}</span>
-                </div>
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
-                  <span style="font-size:13px;color:#b2b6bd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ s.lastMessage || '开始聊天吧' }}</span>
-                  <span v-if="s.unreadCount" style="min-width:18px;height:18px;border-radius:9px;background:#f43530;color:#fff;font-size:11px;display:flex;align-items:center;justify-content:center;padding:0 5px">{{ s.unreadCount }}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </template>
-
-        <!-- 视图2：聊天室 -->
-        <template v-else>
-          <div style="display:flex;align-items:center;gap:4px;padding:14px 8px 10px;background:rgba(237,237,237,0.95);color:#1c1c1e;flex-shrink:0;min-height:52px;border-bottom:1px solid #e5e5e5">
-            <button style="width:34px;height:34px;background:none;border:none;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" @click="wechatView='list'"><svg width="22" height="22" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-            <div style="flex:1;text-align:center;min-width:0;cursor:pointer" @click="showMaskMenu=!showMaskMenu">
-              <div style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ currentAlt ? (currentAlt.remark || currentAlt.name) : 'AI 小号' }}</div>
-              <div style="font-size:11px;color:#8e8e93;margin-top:1px">{{ activeMaskName }} ▾</div>
-            </div>
-            <button style="width:34px;height:34px;background:none;border:none;color:#333;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" @click="wechatView='settings'"><svg width="22" height="22" viewBox="0 0 24 24" style="fill:currentColor"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg></button>
-          </div>
-
-          <div v-if="showMaskMenu" style="position:absolute;top:52px;left:0;right:0;z-index:1600;background:#fff;color:#1c1c1e;border-radius:0 0 16px 16px;box-shadow:0 12px 30px rgba(0,0,0,.25);padding:8px 0;max-height:60vh;overflow-y:auto">
-            <div v-for="m in wechatBus.userMasks" :key="m.id" style="display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer" @click="setActiveMask(m.id)">
-              <img v-if="m.avatar" :src="m.avatar" style="width:36px;height:36px;border-radius:9px;object-fit:cover">
-              <div v-else style="width:36px;height:36px;border-radius:9px;background:#e5e5ea;display:flex;align-items:center;justify-content:center;color:#8e8e93;font-weight:600">{{ m.name[0] }}</div>
-              <span style="flex:1;font-size:15px">{{ m.name }}</span>
-              <span v-if="m.id===wechatBus.activeMaskId" style="color:#34c759;font-weight:600">✓</span>
-            </div>
-            <button style="width:100%;padding:11px;background:none;border:none;color:#007aff;font-size:14px;cursor:pointer" @click="maskForm(null)">＋ 新建面具</button>
-          </div>
-
-          <div ref="chatScrollRef" style="flex:1;overflow-y:auto;background:#edf0f5;padding:14px 12px;-webkit-overflow-scrolling:touch">
-            <div v-if="!sessionMessages.length" style="text-align:center;color:#b2b6bd;padding-top:70px;font-size:13px">开始和 ta 聊天吧</div>
-            <div v-for="m in sessionMessages" :key="m.id" style="display:flex;margin-bottom:12px" :style="{justifyContent: m.senderType==='user' ? 'flex-end' : 'flex-start'}">
-              <template v-if="m.senderType==='ai'">
-                <img v-if="currentAlt && currentAlt.avatar" :src="currentAlt.avatar" style="width:38px;height:38px;border-radius:6px;object-fit:cover;margin-right:8px;flex-shrink:0">
-                <div v-else style="width:38px;height:38px;border-radius:6px;margin-right:8px;background:#c7c7cc;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;flex-shrink:0">{{ (currentAlt ? currentAlt.name : 'AI')[0] }}</div>
-              </template>
-              <div style="max-width:72%">
-                <div v-if="m.isRecalled" style="background:transparent;color:#b2b6bd;font-size:12px;padding:6px 4px">{{ m.senderType==='ai' ? '对方' : '你' }}撤回了一条消息 <span style="color:#576b95;text-decoration:underline;cursor:pointer" @click="m.isRecalled=false">[点击查看]</span></div>
-                <div v-else :style="{ background: m.senderType==='user' ? '#95ec69' : '#ffffff', borderRadius:'8px', padding:'10px 13px', fontSize:'15px', lineHeight:'1.5', whiteSpace:'pre-wrap', wordBreak:'break-word', boxShadow:'0 1px 2px rgba(0,0,0,0.05)' }" @contextmenu.prevent="msgMenu(m)" @touchstart="msgPressStart(m,$event)" @touchend="msgPressEnd" @touchmove="msgPressEnd">{{ m.text }}</div>
-                <div v-if="m.senderType==='ai' && m.thought" style="margin-top:5px;background:rgba(255,255,255,0.6);border-left:3px solid #a78bfa;border-radius:4px;padding:6px 10px;font-size:12px;color:#8a8a93;white-space:pre-wrap">{{ m.thought }}</div>
-              </div>
-              <template v-if="m.senderType==='user'">
-                <img v-if="maskOf(m.senderId).avatar" :src="maskOf(m.senderId).avatar" style="width:38px;height:38px;border-radius:6px;object-fit:cover;margin-left:8px;flex-shrink:0">
-                <div v-else style="width:38px;height:38px;border-radius:6px;margin-left:8px;background:#95ec69;display:flex;align-items:center;justify-content:center;color:#333;font-weight:600;flex-shrink:0">{{ (maskOf(m.senderId).name||'我')[0] }}</div>
-              </template>
-            </div>
-            <div v-if="sending" style="display:flex;align-items:center;margin-bottom:12px">
-              <div style="width:38px;height:38px;border-radius:6px;background:#c7c7cc;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600">…</div>
-              <div style="background:#fff;border-radius:8px;padding:9px 14px;margin-left:8px"><span style="color:#b2b6bd;font-size:14px">对方正在输入…</span></div>
-            </div>
-          </div>
-
-          <div style="display:flex;align-items:flex-end;gap:6px;padding:8px 10px calc(8px + env(safe-area-inset-bottom));background:#f7f7f7;border-top:1px solid #e5e5e5;flex-shrink:0">
-            <button style="width:34px;height:34px;border-radius:50%;background:none;border:none;color:#333;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center" @click="showToast('按住说话（演示）')"><svg width="24" height="24" viewBox="0 0 24 24" style="fill:currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5.1c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg></button>
-            <div style="flex:1;background:#fff;border-radius:8px;display:flex;align-items:center">
-              <textarea v-model="chatInput" rows="1" :placeholder="currentAlt && currentAlt.blacklisted ? '对方已拉黑' : '发消息'" @keydown.enter.exact.prevent="sendMessage" style="flex:1;border:none;outline:none;padding:8px 12px;resize:none;font-size:15px;background:transparent;color:#1c1c1e;line-height:1.4;max-height:90px"></textarea>
-            </div>
-            <button style="flex-shrink:0;background:#95ec69;border:none;border-radius:6px;padding:7px 12px;font-size:14px;font-weight:600;color:#333;cursor:pointer" @click="sendMessage">发送</button>
-            <button style="width:34px;height:34px;border-radius:50%;background:none;border:none;color:#333;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center" @click="showDrawer=!showDrawer"><svg width="24" height="24" viewBox="0 0 24 24" style="fill:currentColor" :style="{transform: showDrawer ? 'rotate(45deg)' : ''}"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg></button>
-          </div>
-
-          <div v-if="showDrawer" style="background:#f7f7f7;border-top:1px solid #e5e5e5;padding:12px 8px;max-height:260px;overflow-y:auto;flex-shrink:0">
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px 4px">
-              <button v-for="a in drawerItems" :key="a.label" style="background:none;border:none;cursor:pointer;padding:0" @click="drawerAction(a.action)">
-                <div :style="{ background: a.bg, width:'52px', height:'52px', borderRadius:'12px', margin:'0 auto 6px', display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:'19px', fontWeight:'600' }">{{ a.icon }}</div>
-                <span style="font-size:11px;color:#333">{{ a.label }}</span>
-              </button>
-            </div>
-          </div>
-        </template>
-
-        <!-- 视图3：聊天信息设置（右侧滑入覆盖层） -->
-        <transition name="slide">
-          <div v-if="wechatView==='settings'" style="position:absolute;inset:0;background:#f2f2f7;color:#1c1c1e;z-index:1700;display:flex;flex-direction:column">
-            <div style="display:flex;align-items:center;gap:6px;padding:14px 12px 10px;background:rgba(255,255,255,0.85);backdrop-filter:blur(20px);border-bottom:1px solid #e5e5ea;flex-shrink:0">
-              <button style="width:34px;height:34px;background:none;border:none;color:#007aff;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0" @click="wechatView='room'"><svg width="22" height="22" viewBox="0 0 24 24" style="fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
-              <span style="flex:1;text-align:center;font-size:16px;font-weight:600">聊天信息</span>
-              <span style="width:34px"></span>
-            </div>
-            <div style="flex:1;overflow-y:auto;padding:10px 16px 40px">
-              <div class="group-title" style="margin-top:4px">通用</div>
-              <div class="card">
-                <div class="row" @click="showToast('查找聊天记录（演示）')"><span class="ri"><span class="t">查找聊天记录</span></span><span class="chev">›</span></div>
-                <div class="row"><span class="ri"><span class="t">消息免打扰</span></span><label class="switch"><input type="checkbox" v-model="currentAlt.mute"><span class="sl"></span></label></div>
-                <div class="row"><span class="ri"><span class="t">置顶聊天</span></span><label class="switch"><input type="checkbox" v-model="currentAlt.pinned"><span class="sl"></span></label></div>
-              </div>
-              <div class="group-title">AIRP 专属设置</div>
-              <div class="card">
-                <div class="row"><span class="ri"><span class="t">User 备注名</span></span><input type="text" v-model="currentAlt.remark" placeholder="给 ta 的备注"></div>
-                <div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><span class="ri"><span class="t">挂载世界书</span><span class="s">绑定一个世界书大板块</span></span><select v-model="currentAlt.attachedBookId" style="width:100%;padding:10px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;background:#fff;color:#1c1c1e"><option value="">不挂载</option><option v-for="c in data.worldbooks" :key="c.id" :value="c.id">{{ c.name }}</option></select></div>
-                <div class="row"><span class="ri"><span class="t">专属模型</span></span><input type="text" v-model="currentAlt.model" placeholder="模型名称"></div>
-                <div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><span class="ri"><span class="t">温度</span><span class="s">Temperature {{ currentAlt.temperature.toFixed(1) }}</span></span><input type="range" min="0.1" max="1.5" step="0.1" v-model.number="currentAlt.temperature"></div>
-                <div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><span class="ri"><span class="t">照片频率</span><span class="s">{{ currentAlt.photoFreq }}%</span></span><input type="range" min="0" max="100" v-model.number="currentAlt.photoFreq"></div>
-                <div class="row" style="flex-direction:column;align-items:stretch;gap:8px"><span class="ri"><span class="t">语音频率</span><span class="s">{{ currentAlt.voiceFreq }}%</span></span><input type="range" min="0" max="100" v-model.number="currentAlt.voiceFreq"></div>
-                <div class="row"><span class="ri"><span class="t">特定音色</span><span class="s">Minimax Voice ID</span></span><input type="text" v-model="currentAlt.voiceId" placeholder="voice_id"></div>
-                <div class="row"><span class="ri"><span class="t">拉黑此联系人</span></span><label class="switch"><input type="checkbox" v-model="currentAlt.blacklisted"><span class="sl"></span></label></div>
-                <div class="row"><span class="ri"><span class="t">无法回复时间段</span><span class="s">如 23:00-07:00</span></span><input type="text" v-model="currentAlt.silentPeriods" placeholder="00:00-06:00"></div>
-              </div>
-            </div>
-          </div>
-        </transition>
-      </div>
 
       <!-- 图标编辑弹窗 -->
       <transition name="fade">
@@ -627,46 +642,6 @@
         </div>
       </transition>
 
-      <!-- AI 小号表单弹窗 -->
-      <transition name="fade">
-        <div v-if="showAltForm" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
-          <div style="background:#fff;border-radius:18px;padding:20px;width:90%;max-width:350px;color:#1c1c1e;max-height:85vh;overflow-y:auto">
-            <h3 style="margin:0 0 14px;font-size:17px">{{ altFormData.id ? '编辑 AI 小号' : '新建 AI 小号' }}</h3>
-            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">名字</label><input type="text" v-model="altFormData.name" placeholder="AI 小号名字" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
-            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">头像 URL</label><input type="text" v-model="altAvatarUrl" placeholder="https://.../avatar.png" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
-            <div style="margin-bottom:10px"><label style="display:block;padding:11px;border:1px dashed #c7c7cc;border-radius:10px;color:#007aff;font-size:13px;text-align:center;cursor:pointer">或上传头像<input type="file" accept="image/*" hidden @change="onAltAvatar"></label></div>
-            <div style="margin-bottom:16px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">简介 / 人设</label><textarea v-model="altFormData.intro" rows="3" placeholder="AI 小号的性格、口吻、背景..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;resize:vertical"></textarea></div>
-            <div style="display:flex;gap:10px"><button class="btn btn-ghost" style="flex:1" @click="showAltForm=false">取消</button><button class="btn" style="flex:1" @click="saveAlt">保存</button></div>
-          </div>
-        </div>
-      </transition>
-
-      <!-- 面具表单弹窗 -->
-      <transition name="fade">
-        <div v-if="showMaskForm" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
-          <div style="background:#fff;border-radius:18px;padding:20px;width:88%;max-width:340px;color:#1c1c1e">
-            <h3 style="margin:0 0 14px;font-size:17px">{{ maskFormData.id ? '编辑面具' : '新建面具' }}</h3>
-            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">面具名字</label><input type="text" v-model="maskFormData.name" placeholder="面具名字" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
-            <div style="margin-bottom:10px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">头像 URL</label><input type="text" v-model="maskAvatarUrl" placeholder="https://.../avatar.png" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
-            <div style="margin-bottom:10px"><label style="display:block;padding:11px;border:1px dashed #c7c7cc;border-radius:10px;color:#007aff;font-size:13px;text-align:center;cursor:pointer">或上传头像<input type="file" accept="image/*" hidden @change="onMaskAvatar"></label></div>
-            <div style="margin-bottom:16px"><label style="font-size:12px;color:#8e8e93;display:block;margin-bottom:5px">人设描述（System Prompt 附加段）</label><textarea v-model="maskFormData.profile" rows="3" placeholder="此面具的性格/口吻..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;resize:vertical"></textarea></div>
-            <div style="display:flex;gap:10px"><button class="btn btn-ghost" style="flex:1" @click="showMaskForm=false">取消</button><button class="btn" style="flex:1" @click="saveMask">保存</button></div>
-          </div>
-        </div>
-      </transition>
-
-      <!-- 消息操作面板（长按弹出） -->
-      <transition name="fade">
-        <div v-if="showMsgMenu" class="app-full" style="background:rgba(0,0,0,.4);z-index:1600;align-items:flex-end" @click="showMsgMenu=false">
-          <div style="background:#fff;border-radius:16px 16px 0 0;padding:12px 8px calc(16px + env(safe-area-inset-bottom));width:100%;color:#1c1c1e" @click.stop>
-            <div style="text-align:center;color:#8e8e93;font-size:12px;padding:6px 0 10px">{{ msgMenuMsg && msgMenuMsg.senderType==='ai' ? 'AI 消息' : '我的消息' }}</div>
-            <button v-if="msgMenuMsg && msgMenuMsg.senderType==='user'" class="btn" style="width:100%;margin-bottom:8px" @click="actEdit(msgMenuMsg);showMsgMenu=false">修改</button>
-            <button class="btn btn-ghost" style="width:100%;margin-bottom:8px" @click="actRecall(msgMenuMsg);showMsgMenu=false">撤回</button>
-            <button class="btn btn-danger" style="width:100%" @click="actErase(msgMenuMsg);showMsgMenu=false">删除记忆（彻底抹除）</button>
-          </div>
-        </div>
-      </transition>
-
       <div class="toast" :class="{show: toast}">{{ toast }}</div>
     </div>
   </div>
@@ -729,21 +704,16 @@ const fonts = [
 
 const LS_KEY = 'ios_simulator_data'
 const DEFAULT_DATA = {
-  _v: 3, wallpaperId:'w1', customWallpaper:'', font:'system', fontUrl:'', iconSize:60, blur:0, saturation:1.6, darkIcons:false, tintIcons:false,
+  _v: 2, wallpaperId:'w1', customWallpaper:'', font:'system', fontUrl:'', iconSize:60, blur:0, saturation:1.6, darkIcons:false, tintIcons:false,
   icons:{}, apiPresets:[], activePresetId:'',
   minimax:{ groupId:'', apiKey:'', voiceId:'male-qn-qingse', speed:1.0, pitch:0 },
   imageGen:{ apiUrl:'', promptTemplate:'', resolution:'1024x1024' },
-  keepAlive:false, worldbooks:[]
-}
-
-// 微信独立数据总线（localStorage: wechat_data_bus）
-const WECHAT_DEFAULT = {
-  userMasks: [{ id:'mask_default', name:'我', avatar:'', profile:'' }],
-  aiAlts: [],       // { id, name, avatar, intro, voiceId, model, temperature, attachedBookId, blacklisted, silentPeriods, remark, photoFreq, voiceFreq, mute, pinned }
-  chatSessions: [], // { id, altId, lastMessage, unreadCount, timestamp }
-  chatMessages: [], // { id, sessionId, senderType, senderId, text, type, isRecalled, recalledText, thought }
-  activeMaskId: 'mask_default',
-  activeSessionId: null
+  keepAlive:false, worldbooks:[],
+  momentsData:[
+    { id:'m1', name:'林晚', color:'#d98866', text:'傍晚路过街角的旧书店，玻璃窗上沾着雨，像谁没说完的话。', images:[], time: Date.now()-3600000, likes:3, liked:false, comments:[{ name:'苏晴', text:'下次一起去。' }] },
+    { id:'m2', name:'苏晴', color:'#6a8fb5', text:'煮了一壶茶，等一个会迟到的人。', images:[], time: Date.now()-7200000, likes:6, liked:false, comments:[] }
+  ],
+  momentsCover:'', stickerLibrary:[]
 }
 
 createApp({
@@ -761,6 +731,12 @@ createApp({
     const catFormData = reactive({ id:null, name:'' })
     const keepAliveTick = ref(0)
 
+    // 微信
+    const activeTab = ref('chats'), momentsOpen = ref(false), stickersOpen = ref(false)
+    const stickerUrlInput = ref('')
+    const showCommentBox = ref(false), commentTargetId = ref(null), commentText = ref('')
+    const momentActionId = ref(null)
+
     let saved = null; try{ saved = JSON.parse(localStorage.getItem(LS_KEY)) }catch(e){ saved = null }
     const data = reactive(Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), saved || {}))
     // 深合并嵌套对象
@@ -777,17 +753,14 @@ createApp({
     }
     // 保证每个板块字段完整
     data.worldbooks.forEach(c => { if(!Array.isArray(c.entries)) c.entries = []; if(c.collapsed === undefined) c.collapsed = false })
-
-    // 微信数据总线
-    let wbSaved = null; try{ wbSaved = JSON.parse(localStorage.getItem('wechat_data_bus')) }catch(e){ wbSaved = null }
-    const wechatBus = reactive(Object.assign(JSON.parse(JSON.stringify(WECHAT_DEFAULT)), wbSaved || {}))
-    if(!Array.isArray(wechatBus.userMasks) || !wechatBus.userMasks.length) wechatBus.userMasks = JSON.parse(JSON.stringify(WECHAT_DEFAULT.userMasks))
-    if(!Array.isArray(wechatBus.aiAlts)) wechatBus.aiAlts = []
-    if(!Array.isArray(wechatBus.chatSessions)) wechatBus.chatSessions = []
-    if(!Array.isArray(wechatBus.chatMessages)) wechatBus.chatMessages = []
+    // 微信数据迁移
+    if(!Array.isArray(data.momentsData)) data.momentsData = DEFAULT_DATA.momentsData
+    if(!Array.isArray(data.stickerLibrary)) data.stickerLibrary = []
+    if(typeof data.momentsCover !== 'string') data.momentsCover = ''
 
     let toastTimer = null
     const showToast = (m) => { toast.value = m; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 1600) }
+    const timeAgo = (ts) => { const d = Date.now() - ts; if(d < 60000) return '刚刚'; if(d < 3600000) return Math.floor(d/60000) + '分钟前'; if(d < 86400000) return Math.floor(d/3600000) + '小时前'; return Math.floor(d/86400000) + '天前' }
 
     // 时钟
     const tick = () => { const d = new Date(); now.value = String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0') }
@@ -797,7 +770,6 @@ createApp({
 
     // 持久化
     watch(data, () => { localStorage.setItem(LS_KEY, JSON.stringify({ ...data })) }, { deep:true })
-    watch(wechatBus, () => { localStorage.setItem('wechat_data_bus', JSON.stringify({ ...wechatBus })) }, { deep:true })
 
     // 字体
     const fontFamily = computed(() => {
@@ -849,7 +821,7 @@ createApp({
     const tapApp = (a) => {
       if(a.id === 'settings'){ openApp.value = 'settings'; settingsRoute.value = 'main' }
       else if(a.id === 'worldbook'){ openApp.value = 'worldbook' }
-      else if(a.id === 'wechat'){ openApp.value = 'wechat' }
+      else if(a.id === 'wechat'){ openApp.value = 'wechat'; activeTab.value = 'chats' }
       else { showToast('「' + a.name + '」组件接口已预留') }
     }
 
@@ -974,6 +946,20 @@ createApp({
       r.readAsText(f); e.target.value = ''
     }
 
+    // ============ 微信：朋友圈 + 表情包 ============
+    const wechatTitle = computed(() => ({ chats:'微信', contacts:'通讯录', discover:'发现', me:'我' }[activeTab.value] || '微信'))
+    // 朋友圈
+    const toggleLike = (id) => { const m = data.momentsData.find(x => x.id === id); if(m){ m.liked = !m.liked; m.likes = Math.max(0, m.likes + (m.liked ? 1 : -1)); momentActionId.value = null } }
+    const openComment = (id) => { commentTargetId.value = id; commentText.value = ''; showCommentBox.value = true; momentActionId.value = null }
+    const submitComment = () => { const t = commentText.value.trim(); if(t && commentTargetId.value){ const m = data.momentsData.find(x => x.id === commentTargetId.value); if(m) m.comments.push({ name:'我', text:t }) } showCommentBox.value = false }
+    const onCoverUpload = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { data.momentsCover = r.result }; r.readAsDataURL(f); e.target.value = '' }
+    // 表情包
+    const addStickerLocal = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { data.stickerLibrary.push({ id:'st'+Date.now(), src:r.result, name:f.name.replace(/\.[^.]+$/,'') }); showToast('表情已添加') }; r.readAsDataURL(f); e.target.value = '' }
+    const addStickerUrl = () => { const u = stickerUrlInput.value.trim(); if(!u){ showToast('请输入图片 URL'); return } data.stickerLibrary.push({ id:'st'+Date.now(), src:u, name:'网络表情' }); stickerUrlInput.value = ''; showToast('表情已添加') }
+    const delSticker = (id) => { data.stickerLibrary = data.stickerLibrary.filter(x => x.id !== id) }
+    const exportStickers = () => { const blob = new Blob([JSON.stringify(data.stickerLibrary, null, 2)], { type:'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'stickers.json'; a.click(); URL.revokeObjectURL(a.href) }
+    const importStickers = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { try{ const arr = JSON.parse(r.result); if(Array.isArray(arr)){ arr.forEach(s => data.stickerLibrary.push({ id:'st'+Date.now()+Math.random().toString(36).slice(2,5), src:s.src||s, name:s.name||'导入表情' })); showToast('已导入 ' + arr.length + ' 个') } }catch(err){ showToast('导入失败') } }; r.readAsText(f); e.target.value = '' }
+
     // 内存监控
     const memoryMB = ref(0)
     const memoryPercent = ref(0)
@@ -1001,136 +987,19 @@ createApp({
 
     const onScroll = () => { if(pagesRef.value) page.value = Math.round(pagesRef.value.scrollLeft / pagesRef.value.clientWidth) }
 
-    // ============ 微信（阶段1：基础底座，纯 mock） ============
-    const wechatView = ref('list')   // 'list' | 'room' | 'settings'
-    const chatSearch = ref('')
-    const showDrawer = ref(false), showMaskMenu = ref(false), showMaskForm = ref(false), showAltForm = ref(false), showMsgMenu = ref(false)
-    const chatInput = ref(''), sending = ref(false), msgMenuMsg = ref(null)
-    const chatScrollRef = ref(null)
-    const maskAvatarUrl = ref(''), maskAvatarData = ref(''), altAvatarUrl = ref(''), altAvatarData = ref('')
-    const maskFormData = reactive({ id:null, name:'', profile:'' })
-    const altFormData = reactive({ id:null, name:'', intro:'' })
-
-    const drawerItems = [
-      { label:'照片', icon:'图', action:'photo', bg:'linear-gradient(160deg,#5e6a76,#39414a)' },
-      { label:'拍摄', icon:'拍', action:'camera', bg:'linear-gradient(160deg,#4a4a4f,#232327)' },
-      { label:'语音通话', icon:'话', action:'voicecall', bg:'linear-gradient(160deg,#8b95a3,#4d565f)' },
-      { label:'视频通话', icon:'视', action:'videocall', bg:'linear-gradient(160deg,#9aa1ab,#5b626b)' },
-      { label:'位置', icon:'位', action:'location', bg:'linear-gradient(160deg,#7fae8f,#4d7058)' },
-      { label:'红包', icon:'包', action:'redpacket', bg:'linear-gradient(160deg,#d44a3f,#7c2a22)' },
-      { label:'转账', icon:'转', action:'transfer', bg:'linear-gradient(160deg,#e8a23d,#8a5a12)' },
-      { label:'文件', icon:'文', action:'file', bg:'linear-gradient(160deg,#87a6c4,#527086)' },
-    ]
-
-    const altOf = (s) => wechatBus.aiAlts.find(a => a.id === s.altId) || { name:'?', avatar:'', remark:'' }
-    const maskOf = (id) => wechatBus.userMasks.find(m => m.id === id) || { name:'我', avatar:'' }
-    const fmtTime = (ts) => { if(!ts) return ''; const d = new Date(ts), n = new Date(); if(d.toDateString() === n.toDateString()) return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0'); return (d.getMonth()+1) + '/' + d.getDate() }
-
-    const currentSession = computed(() => wechatBus.chatSessions.find(s => s.id === wechatBus.activeSessionId) || null)
-    const currentAlt = computed(() => { const s = currentSession.value; return s ? wechatBus.aiAlts.find(a => a.id === s.altId) || null : null })
-    const sessionMessages = computed(() => wechatBus.chatMessages.filter(m => m.sessionId === wechatBus.activeSessionId))
-    const activeMaskName = computed(() => { const m = wechatBus.userMasks.find(x => x.id === wechatBus.activeMaskId); return m ? m.name : '我' })
-    const filteredSessions = computed(() => {
-      const q = chatSearch.value.trim().toLowerCase()
-      if(!q) return wechatBus.chatSessions
-      return wechatBus.chatSessions.filter(s => {
-        const a = altOf(s)
-        if((a.name||'').toLowerCase().includes(q) || (a.remark||'').toLowerCase().includes(q) || (s.lastMessage||'').toLowerCase().includes(q)) return true
-        return wechatBus.chatMessages.some(m => m.sessionId === s.id && (m.text||'').toLowerCase().includes(q))
-      })
-    })
-
-    const scrollChat = () => { const el = chatScrollRef.value; if(el) setTimeout(() => el.scrollTop = el.scrollHeight, 30) }
-
-    // 面具
-    const maskForm = (id) => { const m = id ? wechatBus.userMasks.find(x => x.id === id) : null; maskFormData.id = m ? m.id : null; maskFormData.name = m ? m.name : ''; maskFormData.profile = m ? m.profile : ''; maskAvatarUrl.value = ''; maskAvatarData.value = m ? m.avatar : ''; showMaskMenu.value = false; showMaskForm.value = true }
-    const onMaskAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { maskAvatarData.value = r.result }; r.readAsDataURL(f); e.target.value = '' }
-    const saveMask = () => {
-      const name = maskFormData.name.trim(); if(!name){ showToast('请输入面具名'); return }
-      const avatar = maskAvatarUrl.value.trim() || maskAvatarData.value
-      if(maskFormData.id){ const m = wechatBus.userMasks.find(x => x.id === maskFormData.id); Object.assign(m, { name, avatar, profile: maskFormData.profile }) }
-      else { const nm = { id:'mask'+Date.now(), name, avatar, profile: maskFormData.profile }; wechatBus.userMasks.push(nm); wechatBus.activeMaskId = nm.id }
-      showMaskForm.value = false; showToast('面具已保存')
-    }
-    const setActiveMask = (id) => { wechatBus.activeMaskId = id; showMaskMenu.value = false }
-
-    // AI 小号
-    const altForm = (id) => { const p = id ? wechatBus.aiAlts.find(x => x.id === id) : null; altFormData.id = p ? p.id : null; altFormData.name = p ? p.name : ''; altFormData.intro = p ? p.intro : ''; altAvatarUrl.value = ''; altAvatarData.value = p ? p.avatar : ''; showAltForm.value = true }
-    const onAltAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { altAvatarData.value = r.result }; r.readAsDataURL(f); e.target.value = '' }
-    const saveAlt = () => {
-      const name = altFormData.name.trim(); if(!name){ showToast('请输入小号名'); return }
-      const avatar = altAvatarUrl.value.trim() || altAvatarData.value
-      if(altFormData.id){ const p = wechatBus.aiAlts.find(x => x.id === altFormData.id); Object.assign(p, { name, avatar, intro: altFormData.intro }) }
-      else {
-        const np = { id:'alt'+Date.now(), name, avatar, intro: altFormData.intro, voiceId:'', model:'', temperature:0.7, attachedBookId:'', blacklisted:false, silentPeriods:'', remark:'', photoFreq:0, voiceFreq:0, mute:false, pinned:false }
-        wechatBus.aiAlts.push(np)
-        wechatBus.chatSessions.push({ id:'s'+Date.now(), altId: np.id, lastMessage:'', unreadCount:0, timestamp: Date.now() })
-      }
-      showAltForm.value = false; showToast('AI 小号已保存')
-    }
-
-    // 聊天
-    const openSession = (id) => { wechatBus.activeSessionId = id; const s = wechatBus.chatSessions.find(x => x.id === id); if(s) s.unreadCount = 0; wechatView.value = 'room' }
-    const mockReply = (alt) => {
-      const name = alt.remark || alt.name
-      const sp = alt.silentPeriods
-      if(sp){ const m = sp.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/); if(m){ const h1=+m[1], h2=+m[3], h=new Date().getHours(); const inSilent = h1<=h2 ? (h>=h1 && h<h2) : (h>=h1 || h<h2); if(inSilent) return { text:'对方已离线/已读不回', thought:'' } } }
-      const reps = ['嗯，我在听。', '这件事我记下了。', '继续说吧。', '我明白你的意思了。']
-      return { text: reps[Math.floor(Math.random()*reps.length)], thought: name + ' 在心里想：' + (alt.intro ? alt.intro.slice(0,24) : '有些话还没说出口') }
-    }
-    const sendMessage = () => {
-      const text = chatInput.value.trim()
-      const alt = currentAlt.value
-      if(!text || sending.value) return
-      if(!alt){ showToast('请先选择会话'); return }
-      if(alt.blacklisted){ showToast('对方已拉黑，无法发送'); return }
-      chatInput.value = ''
-      wechatBus.chatMessages.push({ id:'m'+Date.now(), sessionId: wechatBus.activeSessionId, senderType:'user', senderId: wechatBus.activeMaskId, text, type:'text', isRecalled:false, recalledText:'', thought:'' })
-      const sess = wechatBus.chatSessions.find(s => s.id === wechatBus.activeSessionId)
-      if(sess){ sess.lastMessage = text; sess.timestamp = Date.now() }
-      scrollChat(); sending.value = true
-      setTimeout(() => {
-        sending.value = false
-        const r = mockReply(alt)
-        wechatBus.chatMessages.push({ id:'m'+Date.now(), sessionId: wechatBus.activeSessionId, senderType:'ai', senderId: alt.id, text: r.text, type:'text', isRecalled:false, recalledText:'', thought: r.thought })
-        if(sess){ sess.lastMessage = r.text; sess.timestamp = Date.now() }
-        scrollChat()
-      }, 3000)
-    }
-
-    // 消息动作（长按）
-    let mpTimer = null
-    const msgPressStart = (m, e) => { mpTimer = setTimeout(() => { msgMenuMsg.value = m; showMsgMenu.value = true }, 500) }
-    const msgPressEnd = () => { clearTimeout(mpTimer) }
-    const msgMenu = (m) => { msgMenuMsg.value = m; showMsgMenu.value = true }
-    const actRecall = (m) => { m.recalledText = m.text; m.isRecalled = true; showToast('已撤回') }
-    const actErase = (m) => { const i = wechatBus.chatMessages.findIndex(x => x.id === m.id); if(i >= 0) wechatBus.chatMessages.splice(i, 1); showToast('已彻底删除该记忆') }
-    const actEdit = (m) => { const nt = prompt('修改这条消息：', m.text || ''); if(nt === null || !nt.trim()) return; m.text = nt.trim(); showToast('已修改') }
-
-    // 抽屉（阶段1 占位）
-    const drawerAction = (act) => {
-      showDrawer.value = false
-      const map = { photo:'模拟相册/生图', camera:'模拟拍摄', voicecall:'语音通话（Minimax TTS 预留）', videocall:'视频通话（预留）', location:'位置（预留）', redpacket:'红包（预留）', transfer:'转账（预留）', file:'文件（预留）' }
-      showToast(map[act] || '功能预留')
-    }
-
-
-    const statusColor = computed(() => (openApp.value==='settings'||openApp.value==='worldbook') ? '#1c1c1e' : '#fff')
+    const statusColor = computed(() => (openApp.value==='settings'||openApp.value==='worldbook'||openApp.value==='wechat') ? '#1c1c1e' : '#fff')
     const homeIndicatorColor = computed(() => (openApp.value==='settings'||openApp.value==='worldbook'||openApp.value==='wechat') ? '#1c1c1e' : '#fff')
 
     return { now, battery, charging, openApp, settingsRoute, page, toast, data, glyphs, wallpapers, fonts, appSlots, fontUrl, iconUrl,
       iconEditing, presetEditing, wbEditing, showPresetForm, showWbForm, presetForm, wbFormData, keepAliveTick,
       wbSearch, showCatForm, showImportMenu, catFormData, filteredCategories,
+      activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
       statusColor, homeIndicatorColor, memoryText, memoryPercent, activePresetName, settingsTitle,
       tapApp, longPressStart, longPressEnd, editIcon, onIconFile, saveIcon, clearIcon, onWallUpload, pickFont, applyFontUrl, onFontFile,
       settingsBack, editPreset, savePreset, closePresetForm, activatePreset,
       catForm, saveCat, catDel, catToggle, wbForm, saveWb, closeWbForm, wbDel, toggleEntry, importSillyTavern, importCSV,
-      wechatBus, wechatView, chatSearch, showDrawer, showMaskMenu, showMaskForm, showAltForm, showMsgMenu,
-      chatInput, sending, msgMenuMsg, chatScrollRef, maskAvatarUrl, altAvatarUrl, maskFormData, altFormData, drawerItems,
-      currentSession, currentAlt, sessionMessages, activeMaskName, filteredSessions, altOf, maskOf, fmtTime,
-      maskForm, onMaskAvatar, saveMask, setActiveMask, altForm, onAltAvatar, saveAlt,
-      openSession, sendMessage, msgMenu, msgPressStart, msgPressEnd, actEdit, actRecall, actErase, drawerAction,
+      toggleLike, openComment, submitComment, onCoverUpload, addStickerLocal, addStickerUrl, delSticker, exportStickers, importStickers, timeAgo,
       toggleKeepAlive, exportBackup, importBackup, onScroll, pagesRef }
   }
 }).mount('#app')
