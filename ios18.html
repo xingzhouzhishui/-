@@ -258,7 +258,7 @@
               <div class="card">
                 <div class="row"><span class="ri"><span class="t">字体文件 URL</span></span><input type="text" v-model="fontUrl" placeholder="https://.../font.woff2"></div>
                 <button class="row" @click="applyFontUrl"><span class="ri"><span class="t">应用 URL 字体</span></span><span class="chev">›</span></button>
-                <label class="row"><span class="ri"><span class="t">导入本地字体文件</span><span class="s">.ttf/.otf/.woff2</span></span><input type="file" accept=".ttf,.otf,.woff,.woff2" hidden @change="importLocalFont"><span class="chev">›</span></label>
+                <label class="row"><span class="ri"><span class="t">导入本地字体文件</span><span class="s">.ttf/.otf/.woff2</span></span><input type="file" accept=".ttf,.otf,.woff,.woff2" hidden @change="onFontFile"><span class="chev">›</span></label>
               </div>
             </template>
 
@@ -284,8 +284,8 @@
                 </div>
                 <div v-if="!data.apiPresets.length" style="padding:20px;text-align:center;color:#8e8e93;font-size:13px">暂无预设，点下方新建</div>
               </div>
-              <button class="btn btn-block" @click="editPreset(null)">+ 新建 API 预设</button>
-              <button class="btn btn-block btn-secondary" style="margin-top:10px" @click="testApiConnection">测试连接与拉取模型</button>
+              <button class="btn btn-block" @click="testApiConnection">测试连接与拉取模型</button>
+              <button class="btn btn-block btn-ghost" style="margin-top:8px" @click="editPreset(null)">+ 新建 API 预设</button>
             </template>
 
             <!-- 多媒体 -->
@@ -373,36 +373,41 @@
             <!-- 通讯录 tab -->
             <div v-else-if="activeTab==='contacts'" style="background:#ededed;min-height:100%;position:relative">
               <!-- 四大头部入口 -->
-              <div style="background:#fff;display:grid;grid-template-columns:repeat(4,1fr);padding:12px 4px;border-bottom:1px solid #f0f0f0">
-                <button @click="openAddContact" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer">
-                  <span style="width:44px;height:44px;border-radius:12px;background:#f0a030;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px">＋</span>
-                  <span style="font-size:11px;color:#1a1a1a">新的朋友</span>
-                </button>
-                <button @click="showToast('仅聊天的朋友（占位）')" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer">
-                  <span style="width:44px;height:44px;border-radius:12px;background:#07c160;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:16px">聊</span>
-                  <span style="font-size:11px;color:#1a1a1a">仅聊天的朋友</span>
-                </button>
-                <button @click="showToast('群聊（占位）')" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer">
-                  <span style="width:44px;height:44px;border-radius:12px;background:#576b95;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:16px">群</span>
-                  <span style="font-size:11px;color:#1a1a1a">群聊</span>
-                </button>
-                <button @click="showToast('标签（占位）')" style="display:flex;flex-direction:column;align-items:center;gap:6px;background:none;border:none;cursor:pointer">
-                  <span style="width:44px;height:44px;border-radius:12px;background:#8e8e93;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#fff;font-size:16px">签</span>
-                  <span style="font-size:11px;color:#1a1a1a">标签</span>
-                </button>
-              </div>
-              <!-- 字母分组列表 -->
-              <div v-if="!data.chatContacts.length" style="padding:50px 20px;text-align:center;color:#8e8e93;font-size:14px">暂无联系人</div>
-              <div v-for="g in groupedContacts" :key="g.letter">
-                <div style="padding:6px 16px;font-size:12px;color:#8e8e93;background:#ededed">{{ g.letter }}</div>
-                <div v-for="c in g.contacts" :key="c.id" style="display:flex;align-items:center;gap:12px;padding:11px 16px;background:#fff;border-bottom:1px solid #f0f0f0;cursor:pointer" @click="openMemberInfo(c.id)">
-                  <span style="width:40px;height:40px;border-radius:10px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;overflow:hidden;background-size:cover;background-position:center" :style="c.avatar ? {backgroundImage:'url('+c.avatar+')'} : {background:c.color}"><span v-if="!c.avatar">{{ displayName(c.id)[0] }}</span></span>
-                  <span style="font-size:16px;color:#1a1a1a">{{ displayName(c.id) }}</span>
+              <div style="background:#fff;margin-bottom:10px">
+                <div class="row" style="padding:13px 16px;border-bottom:1px solid #f0f0f0" @click="openAddContact">
+                  <span style="width:40px;height:40px;border-radius:8px;background:#f0a030;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;flex-shrink:0">＋</span>
+                  <span class="ri"><span class="t" style="color:#1a1a1a;font-size:16px">新的朋友 / 添加角色</span></span>
+                  <span class="chev">›</span>
+                </div>
+                <div class="row" style="padding:13px 16px;border-bottom:1px solid #f0f0f0" @click="showToast('仅聊天的朋友（占位）')">
+                  <span style="width:40px;height:40px;border-radius:8px;background:#4aa3df;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0">聊</span>
+                  <span class="ri"><span class="t" style="color:#1a1a1a;font-size:16px">仅聊天的朋友</span></span>
+                  <span class="chev">›</span>
+                </div>
+                <div class="row" style="padding:13px 16px;border-bottom:1px solid #f0f0f0" @click="showToast('群聊（占位）')">
+                  <span style="width:40px;height:40px;border-radius:8px;background:#52c41a;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0">群</span>
+                  <span class="ri"><span class="t" style="color:#1a1a1a;font-size:16px">群聊</span></span>
+                  <span class="chev">›</span>
+                </div>
+                <div class="row" style="padding:13px 16px" @click="showToast('标签（占位）')">
+                  <span style="width:40px;height:40px;border-radius:8px;background:#8a6d3b;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0">签</span>
+                  <span class="ri"><span class="t" style="color:#1a1a1a;font-size:16px">标签</span></span>
+                  <span class="chev">›</span>
                 </div>
               </div>
-              <!-- A-Z 字母索引条 -->
-              <div style="position:absolute;right:3px;top:140px;display:flex;flex-direction:column;align-items:center;gap:1px;z-index:10">
-                <span v-for="l in alphabetIndex" :key="l" style="font-size:9px;color:#8e8e93;line-height:1.5;cursor:pointer" @click="showToast('索引 ' + l)">{{ l }}</span>
+              <!-- 联系人分组 -->
+              <div v-if="!data.chatContacts.length" style="padding:40px 20px;text-align:center;color:#8e8e93;font-size:14px">暂无联系人</div>
+              <div v-for="g in contactGroups" :key="g.letter" :id="'grp-'+g.letter">
+                <div style="font-size:13px;color:#8e8e93;padding:6px 16px;background:#ededed">{{ g.letter }}</div>
+                <div v-for="c in g.contacts" :key="c.id" class="row" style="background:#fff;border-bottom:1px solid #f0f0f0" @click="openMemberInfo(c.id)">
+                  <span style="width:40px;height:40px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:16px;flex-shrink:0;overflow:hidden;background-size:cover;background-position:center" :style="c.avatar ? {backgroundImage:'url('+c.avatar+')'} : {background:c.color}"><span v-if="!c.avatar">{{ displayName(c.id)[0] }}</span></span>
+                  <span class="ri"><span class="t" style="color:#1a1a1a;font-size:16px">{{ displayName(c.id) }}</span></span>
+                  <span class="chev">›</span>
+                </div>
+              </div>
+              <!-- 字母索引条 -->
+              <div style="position:absolute;right:4px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;z-index:10">
+                <button v-for="l in alphabet" :key="l" @click="scrollToGroup(l)" style="font-size:10px;color:#576b95;padding:1px 5px;background:none;border:none;cursor:pointer;line-height:1.3">{{ l }}</button>
               </div>
             </div>
             <!-- 发现 tab -->
@@ -805,7 +810,7 @@
             <div class="group-title">时空与世界书挂载</div>
             <div class="card">
               <div class="row"><span class="ri"><span class="t">挂载世界书大板块</span></span><select v-model="currentMeta.worldbookCatId" style="border:none;outline:none;background:transparent;font-size:14px;color:#1c1c1e"><option value="">全部板块</option><option v-for="c in data.worldbooks" :key="c.id" :value="c.id">{{ c.name }}</option></select></div>
-              <div class="row"><span class="ri"><span class="t">专属模型</span></span><select v-model="currentMeta.model" style="border:none;outline:none;background:transparent;font-size:14px;color:#1c1c1e;text-align:right"><option value="" disabled>选择模型</option><option v-for="m in availableModels" :value="m">{{ m }}</option><option v-if="currentMeta.model && !availableModels.includes(currentMeta.model)" :value="currentMeta.model">{{ currentMeta.model }}（自定义）</option></select></div>
+              <div class="row"><span class="ri"><span class="t">专属模型</span></span><select v-model="currentMeta.model" style="border:none;outline:none;background:transparent;font-size:14px;color:#1c1c1e"><option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option><option v-if="currentMeta.model && !availableModels.includes(currentMeta.model)" :value="currentMeta.model">{{ currentMeta.model }}</option></select></div>
               <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
                 <div style="display:flex;justify-content:space-between;align-items:center"><span class="t" style="font-size:14px">温度</span><span style="color:#8e8e93;font-size:13px">{{ currentMeta.temperature.toFixed(1) }}</span></div>
                 <input type="range" min="0.1" max="1.5" step="0.1" v-model.number="currentMeta.temperature">
@@ -920,7 +925,7 @@
               </div>
               <div class="row"><span class="ri"><span class="t">独立 API 地址</span></span><input type="text" v-model="newContactForm.apiUrl" placeholder="https://..."></div>
               <div class="row"><span class="ri"><span class="t">独立 API Key</span></span><input type="password" v-model="newContactForm.apiKey" placeholder="sk-..."></div>
-              <div class="row"><span class="ri"><span class="t">模型名称</span></span><select v-model="newContactForm.apiModel" style="border:none;outline:none;background:transparent;font-size:14px;color:#1c1c1e;text-align:right"><option value="" disabled>选择模型</option><option v-for="m in availableModels" :value="m">{{ m }}</option><option v-if="newContactForm.apiModel && !availableModels.includes(newContactForm.apiModel)" :value="newContactForm.apiModel">{{ newContactForm.apiModel }}（自定义）</option></select></div>
+              <div class="row"><span class="ri"><span class="t">模型名称</span></span><select v-model="newContactForm.apiModel" style="border:none;outline:none;background:transparent;font-size:14px;color:#1c1c1e"><option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option><option v-if="newContactForm.apiModel && !availableModels.includes(newContactForm.apiModel)" :value="newContactForm.apiModel">{{ newContactForm.apiModel }}</option></select></div>
             </div>
           </div>
         </div>
@@ -1111,7 +1116,7 @@
             <div style="margin-bottom:12px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">预设名称</label><input type="text" v-model="presetForm.name" placeholder="DeepSeek-Pro" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
             <div style="margin-bottom:12px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">API Key</label><input type="password" v-model="presetForm.apiKey" placeholder="sk-..." style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
             <div style="margin-bottom:12px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">Base URL（请求地址）</label><input type="text" v-model="presetForm.baseUrl" placeholder="https://api.deepseek.com/v1" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none"></div>
-            <div style="margin-bottom:16px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">模型名称</label><select v-model="presetForm.model" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;background:#fff;color:#1c1c1e"><option value="" disabled>选择模型</option><option v-for="m in availableModels" :value="m">{{ m }}</option><option v-if="presetForm.model && !availableModels.includes(presetForm.model)" :value="presetForm.model">{{ presetForm.model }}（自定义）</option></select></div>
+            <div style="margin-bottom:16px"><label style="font-size:13px;color:#8e8e93;display:block;margin-bottom:6px">模型名称</label><select v-model="presetForm.model" style="width:100%;padding:10px 12px;border-radius:10px;border:1px solid #e5e5ea;font-size:14px;outline:none;background:#fff"><option v-for="m in availableModels" :key="m" :value="m">{{ m }}</option><option v-if="presetForm.model && !availableModels.includes(presetForm.model)" :value="presetForm.model">{{ presetForm.model }}</option></select><div style="font-size:11px;color:#8e8e93;margin-top:6px">先在列表页「测试连接与拉取模型」获取模型，或手动填入（选中即保存）</div></div>
             <div style="display:flex;gap:10px">
               <button class="btn btn-ghost" style="flex:1" @click="closePresetForm">取消</button>
               <button class="btn" style="flex:1" @click="savePreset">保存</button>
@@ -1255,7 +1260,6 @@ createApp({
     const iconEditing = ref(null), presetEditing = ref(undefined), wbEditing = ref(undefined)
     const showPresetForm = ref(false), showWbForm = ref(false)
     const presetForm = reactive({ id:null, name:'', apiKey:'', baseUrl:'', model:'' })
-    const availableModels = ref([])
     const wbFormData = reactive({ catId:null, id:null, key:'', content:'', constant:false, depth:3, enabled:true })
     const wbSearch = ref('')
     const showCatForm = ref(false), showImportMenu = ref(false)
@@ -1351,28 +1355,28 @@ createApp({
 
     // 字体
     const fontFamily = computed(() => {
-      if(data.font === 'custom' && data.fontUrl) return '"UserCustomFont", ' + fonts[0].family
+      if(data.font === 'custom' && data.fontUrl) return '"SystemUI", ' + fonts[0].family
       const f = fonts.find(x => x.id === data.font); return f ? f.family : fonts[0].family
     })
     const fontName = computed(() => { if(data.font === 'custom') return '自定义字体'; const f = fonts.find(x => x.id === data.font); return f ? f.name : '系统默认' })
     const pickFont = (id) => { data.font = id }
     const applyFontUrl = () => {
       const u = fontUrl.value.trim(); if(!u){ showToast('请输入字体 URL'); return }
-      try{ const ff = new FontFace('UserCustomFont', 'url(' + u + ')'); ff.load().then(f => { document.fonts.add(f); data.fontUrl = u; data.font = 'custom'; showToast('字体已应用') }).catch(() => showToast('字体加载失败')) }catch(e){ showToast('字体加载失败') }
+      try{ const ff = new FontFace('SystemUI', 'url(' + u + ')'); ff.load().then(f => { document.fonts.add(f); data.fontUrl = u; data.font = 'custom'; showToast('字体已应用') }).catch(() => showToast('字体加载失败')) }catch(e){ showToast('字体加载失败') }
     }
-    // 本地字体动态注入（绕过本地路径限制：blob 链接 + @font-face 注入）
+    // 本地字体动态注入（绕过浏览器本地路径限制，使用 blob URL + @font-face）
     const importLocalFont = (event) => {
-      const file = event.target.files[0]
-      if(!file) return
+      const file = event.target.files[0]; if(!file) return
       const blobUrl = URL.createObjectURL(file)
       let style = document.getElementById('custom-font-style')
       if(!style){ style = document.createElement('style'); style.id = 'custom-font-style'; document.head.appendChild(style) }
-      style.textContent = `@font-face { font-family: 'UserCustomFont'; src: url('${blobUrl}'); }`
-      document.documentElement.style.fontFamily = "'UserCustomFont', -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif"
+      style.textContent = "@font-face { font-family: 'UserCustomFont'; src: url('" + blobUrl + "'); }"
+      document.documentElement.style.fontFamily = "'UserCustomFont', -apple-system, 'PingFang SC', sans-serif"
       data.font = 'custom'; data.fontUrl = blobUrl
       showToast('字体已注入')
-      event.target.value = ''
     }
+    const onFontFile = importLocalFont
+
 
     // 壁纸
     const wallpaperStyle = computed(() => {
@@ -1431,16 +1435,6 @@ createApp({
     const closePresetForm = () => { showPresetForm.value = false; presetEditing.value = undefined }
     // 切换激活
     const activatePreset = (id) => { data.activePresetId = id }
-    // 测试连接并拉取模型列表
-    const testApiConnection = () => {
-      const preset = data.apiPresets.find(p => p.id === data.activePresetId)
-      if(!preset || !preset.baseUrl){ showToast('请先填写 API 地址并保存预设'); return }
-      const base = preset.baseUrl.replace(/\/+$/, '')
-      fetch(base + '/v1/models', { headers: preset.apiKey ? { 'Authorization': 'Bearer ' + preset.apiKey } : {} })
-        .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status + ' ' + r.statusText); return r.json() })
-        .then(j => { const list = ((j.data) || []).map(m => m.id).filter(Boolean); availableModels.value = list; showToast('连接成功，已拉取 ' + list.length + ' 个模型') })
-        .catch(err => showToast('连接失败：' + err.message))
-    }
 
     // ============ 世界书（大板块 + 词条） ============
     const filteredCategories = computed(() => {
@@ -1592,16 +1586,18 @@ createApp({
     }
     const currentMeta = computed(() => altMeta(activeContactId.value))
     const displayName = (altId) => { const c = data.chatContacts.find(x => x.id === altId); const m = altMeta(altId); return (m && m.remark) ? m.remark : (c ? c.name : '') }
-    const alphabetIndex = ['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z']
-    const groupedContacts = computed(() => {
-      const groups = {}
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').concat('#')
+    const contactGroups = computed(() => {
+      const map = {}
       data.chatContacts.forEach(c => {
-        const key = (displayName(c.id) || '#').charAt(0).toUpperCase()
-        if(!groups[key]) groups[key] = []
-        groups[key].push(c)
+        const name = displayName(c.id) || '#'
+        const ch = name.charAt(0).toUpperCase()
+        const letter = /[A-Z]/.test(ch) ? ch : '#'
+        ;(map[letter] = map[letter] || []).push(c)
       })
-      return Object.keys(groups).sort((a,b) => a === '#' ? -1 : b === '#' ? 1 : a.localeCompare(b)).map(k => ({ letter: k, contacts: groups[k] }))
+      return Object.keys(map).sort((a,b) => a === '#' ? 1 : b === '#' ? -1 : a.localeCompare(b)).map(l => ({ letter:l, contacts: map[l] }))
     })
+    const scrollToGroup = (letter) => { const el = document.getElementById('grp-' + letter); if(el) el.scrollIntoView({ behavior:'smooth', block:'start' }) }
     const actionMsg = computed(() => { if(!actionMsgId.value) return null; return chatMessages.value.find(x => x.id === actionMsgId.value) })
     // 第六阶段：动作/神态破框剥离渲染器
     const ACTION_RE = /(\*[^*\n]+\*|\([^()\n]+\))/g
@@ -1648,6 +1644,18 @@ createApp({
       if(s <= e) return cur >= s && cur <= e
       return cur >= s || cur <= e
     }
+    const availableModels = ref([])
+    const apiEndpoint = (base, path) => (base || '').replace(/\/+$/, '') + path
+    const testApiConnection = () => {
+      const preset = data.apiPresets.find(p => p.id === data.activePresetId)
+      const base = preset && preset.baseUrl
+      const key = preset && preset.apiKey
+      if(!base){ showToast('请先在预设中填写 Base URL'); return }
+      fetch(apiEndpoint(base, '/v1/models'), { headers: { 'Authorization': 'Bearer ' + (key || '') } })
+        .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
+        .then(j => { const list = (j.data || []).map(m => m.id).filter(Boolean); availableModels.value = list; if(list.length) showToast('连接成功，已拉取 ' + list.length + ' 个模型'); else showToast('连接成功，但未返回模型列表') })
+        .catch(err => { availableModels.value = []; showToast('连接失败：' + err.message) })
+    }
     const resolveApi = (altId) => {
       const c = data.chatContacts.find(x => x.id === altId)
       const meta = altMeta(altId)
@@ -1690,14 +1698,13 @@ createApp({
       if(cfg.url && cfg.key){
         typing.value = true
         const prompt = assembleApiPrompt(alt)
-        const endpoint = cfg.url.replace(/\/+$/, '') + '/v1/chat/completions'
-        fetch(endpoint, {
+        fetch(apiEndpoint(cfg.url, '/v1/chat/completions'), {
           method:'POST',
           headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+cfg.key },
           body: JSON.stringify({ model:cfg.model, temperature:cfg.temperature, messages:[{ role:'system', content:prompt }] })
-        }).then(r => { if(!r.ok) throw new Error('HTTP '+r.status+' '+r.statusText); return r.json() })
-          .then(j => { typing.value = false; const text = parseAiText(j); const s = sessionFor(alt, mask); if(s && text) s.push({ id:'msg'+Date.now(), sender:'ai', text, thought:'', time:Date.now() }); else if(s) s.push({ id:'msg'+Date.now(), sender:'system', text:'未解析到回复内容', time:Date.now() }) })
-          .catch(err => { typing.value = false; console.error(err); const s = sessionFor(alt, mask); if(s) s.push({ id:'msg'+Date.now(), sender:'system', text:'AI 请求失败：' + err.message, time:Date.now() }) })
+        }).then(r => { if(!r.ok) throw new Error('HTTP '+r.status); return r.json() })
+          .then(j => { typing.value = false; const text = parseAiText(j); const s = sessionFor(alt, mask); if(s && text) s.push({ id:'msg'+Date.now(), sender:'ai', text, thought:'', time:Date.now() }); else if(s) showToast('未解析到回复内容') })
+          .catch(err => { typing.value = false; console.error(err); showToast('API 请求失败，已回退模拟'); simulateReply(alt, mask) })
       } else {
         simulateReply(alt, mask)
       }
@@ -1968,14 +1975,14 @@ createApp({
       wbSearch, showCatForm, showImportMenu, catFormData, filteredCategories,
       activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
       chatOpen, activeContactId, drawerOpen, typing, chatInput, editingMsgId, editText, showThoughts, actionMsgId, showRecallModal, recalledText, showMaskPicker,
-      activeContact, maskById, actionMsg, chatMessages, lastMsgOf, sessionFor, currentMeta, displayName, memoOpen, memoContent,
+      activeContact, maskById, actionMsg, chatMessages, lastMsgOf, sessionFor, currentMeta, displayName, alphabet, contactGroups, scrollToGroup, memoOpen, memoContent,
       multiSelect, selectedIds, transferOpen, transferAmount, transferType, giftOpen, gifts,
       profileOpen, maskManagerOpen, chatSettingsOpen, maskEditId, maskEditorOpen, maskForm, addContactOpen, newContactForm, confirmOpen, confirmText,
       charAvatarUrl, memberInfoOpen, memberInfoId, showDeleteSheet, memberInfo,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
-      statusColor, homeIndicatorColor, memoryText, memoryPercent, activePresetName, settingsTitle, availableModels, groupedContacts, alphabetIndex,
-      tapApp, longPressStart, longPressEnd, editIcon, onIconFile, saveIcon, clearIcon, onWallUpload, pickFont, applyFontUrl, importLocalFont,
-      settingsBack, editPreset, savePreset, closePresetForm, activatePreset, testApiConnection,
+      statusColor, homeIndicatorColor, memoryText, memoryPercent, activePresetName, settingsTitle, availableModels, testApiConnection,
+      tapApp, longPressStart, longPressEnd, editIcon, onIconFile, saveIcon, clearIcon, onWallUpload, pickFont, applyFontUrl, onFontFile, importLocalFont,
+      settingsBack, editPreset, savePreset, closePresetForm, activatePreset,
       catForm, saveCat, catDel, catToggle, wbForm, saveWb, closeWbForm, wbDel, toggleEntry, importSillyTavern, importCSV,
       toggleLike, openComment, submitComment, onCoverUpload, addStickerLocal, addStickerUrl, delSticker, exportStickers, importStickers, timeAgo,
       openChat, triggerApiReply, sendChat, openAddContact, saveNewContact, genWechatId, onCharAvatar, onCharAvatarUrl, onCharPhotos, removeCharPhoto, openMemberInfo, requestDeleteChar, doDeleteChar, openAddMask, editMask, saveMask, onMaskAvatar, onUserAvatar, regenerate, toggleThoughts, startEdit, saveEdit, recallMessage, viewRecalled, eraseMessage, eraseAll, msgPressStart, msgPressEnd, drawerItems, openMemo, msgDialogue, msgActions, checkAndTriggerSummary,
