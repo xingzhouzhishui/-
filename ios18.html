@@ -357,7 +357,7 @@
           <div class="af-header">
             <button class="af-back" @click="openApp=null"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
             <span class="af-title">{{ wechatTitle }}</span>
-            <span class="af-right"><button @click="addContact">＋</button></span>
+            <span class="af-right"><button @click="openAddContact">＋</button></span>
           </div>
           <div class="af-body" style="padding:0">
             <!-- 微信 tab：会话列表 -->
@@ -395,11 +395,13 @@
             <!-- 我 tab -->
             <div v-else-if="activeTab==='me'" style="padding:10px 16px">
               <div class="card" style="padding:0">
-                <div class="row" style="padding:20px 16px">
-                  <span style="width:58px;height:58px;border-radius:14px;background:linear-gradient(160deg,#8e8e93,#636366);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;flex-shrink:0">我</span>
-                  <span class="ri"><span class="t" style="font-size:17px">我</span><span class="s">微信号：wxid_demo</span></span>
+                <button class="row" style="padding:20px 16px;width:100%" @click="profileOpen=true">
+                  <span style="width:58px;height:58px;border-radius:14px;background:linear-gradient(160deg,#8e8e93,#636366);display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:600;flex-shrink:0;overflow:hidden;background-size:cover;background-position:center" :style="data.userProfile.avatar ? {backgroundImage:'url('+data.userProfile.avatar+')'} : {}">
+                    <span v-if="!data.userProfile.avatar">{{ data.userProfile.name[0] }}</span>
+                  </span>
+                  <span class="ri"><span class="t" style="font-size:17px">{{ data.userProfile.name }}</span><span class="s">微信号：{{ data.userProfile.wechatId }}</span></span>
                   <span class="chev">›</span>
-                </div>
+                </button>
               </div>
               <div class="group-title">功能</div>
               <div class="card">
@@ -526,7 +528,7 @@
                 {{ (maskById(data.activeMaskId)||{}).name || '面具' }} ▾
               </button>
             </div>
-            <span class="af-right" style="width:34px"></span>
+            <span class="af-right" style="width:34px"><button @click="openChatSettings" style="background:none;border:none;color:#1c1c1e;font-size:16px;cursor:pointer">···</button></span>
           </div>
           <div class="af-body" style="padding:0;display:flex;flex-direction:column">
             <!-- 消息流 -->
@@ -614,7 +616,149 @@
               <span class="ri"><span class="t">{{ m.name }}</span></span>
               <span v-if="m.id===data.activeMaskId" style="color:#07c160">✓</span>
             </div>
-            <button class="btn btn-block" style="margin-top:12px" @click="addMask">＋ 新建面具</button>
+            <button class="btn btn-block" style="margin-top:12px" @click="openAddMask">＋ 新建面具</button>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ============ 个人信息页 (ProfileEdit) ============ -->
+      <transition name="fade">
+        <div v-if="profileOpen" class="app-full" style="z-index:1300">
+          <div class="af-header">
+            <button class="af-back" @click="profileOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">个人信息</span>
+            <span class="af-right"></span>
+          </div>
+          <div class="af-body">
+            <div class="card" style="padding:0">
+              <label class="row"><span class="ri"><span class="t">头像</span></span><span style="width:54px;height:54px;border-radius:12px;background:linear-gradient(160deg,#8e8e93,#636366);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:20px;overflow:hidden;background-size:cover;background-position:center;flex-shrink:0" :style="data.userProfile.avatar ? {backgroundImage:'url('+data.userProfile.avatar+')'} : {}"><span v-if="!data.userProfile.avatar">{{ data.userProfile.name[0] }}</span></span><input type="file" accept="image/*" hidden @change="onUserAvatar"><span class="chev">›</span></label>
+              <div class="row"><span class="ri"><span class="t">昵称</span></span><input type="text" v-model="data.userProfile.name"></div>
+              <div class="row"><span class="ri"><span class="t">微信号</span></span><input type="text" v-model="data.userProfile.wechatId"></div>
+              <div class="row"><span class="ri"><span class="t">我的地址</span></span><input type="text" v-model="data.userProfile.address" placeholder="未设置"></div>
+            </div>
+            <div class="group-title">身份</div>
+            <div class="card">
+              <button class="row" @click="maskManagerOpen=true"><span class="ri"><span class="t">我的身份面具</span><span class="s">{{ data.userMasks.length }} 个面具</span></span><span class="chev">›</span></button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ============ 面具管理器 ============ -->
+      <transition name="fade">
+        <div v-if="maskManagerOpen" class="app-full" style="z-index:1300">
+          <div class="af-header">
+            <button class="af-back" @click="maskManagerOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">我的身份面具</span>
+            <span class="af-right"><button @click="openAddMask">新建</button></span>
+          </div>
+          <div class="af-body">
+            <div class="card">
+              <button v-for="m in data.userMasks" :key="m.id" class="row" @click="editMask(m.id)">
+                <span style="width:46px;height:46px;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:18px;flex-shrink:0;overflow:hidden;background-size:cover;background-position:center" :style="m.avatar ? {backgroundImage:'url('+m.avatar+')'} : {background:m.color}"><span v-if="!m.avatar">{{ m.name[0] }}</span></span>
+                <span class="ri"><span class="t">{{ m.name }}</span><span class="s">{{ m.persona ? m.persona.slice(0,50)+'…' : '未填写人设' }}</span></span>
+                <span v-if="m.id===data.activeMaskId" style="color:#07c160;font-size:12px">当前</span>
+                <span class="chev">›</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ============ 面具编辑器 ============ -->
+      <transition name="fade">
+        <div v-if="maskEditorOpen" class="app-full" style="z-index:1350">
+          <div class="af-header">
+            <button class="af-back" @click="maskEditorOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">{{ maskEditId ? '编辑面具' : '新建面具' }}</span>
+            <span class="af-right"><button @click="saveMask" style="color:#07c160">保存</button></span>
+          </div>
+          <div class="af-body">
+            <div class="card" style="padding:16px;display:flex;align-items:center;gap:16px">
+              <label style="cursor:pointer;width:64px;height:64px;border-radius:16px;background:linear-gradient(160deg,#8e8e93,#636366);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:24px;overflow:hidden;background-size:cover;background-position:center;flex-shrink:0" :style="maskForm.avatar ? {backgroundImage:'url('+maskForm.avatar+')'} : {}"><span v-if="!maskForm.avatar">＋</span><input type="file" accept="image/*" hidden @change="onMaskAvatar"></label>
+              <div style="font-size:13px;color:#8e8e93">点击上传头像</div>
+            </div>
+            <div class="card">
+              <div class="row"><span class="ri"><span class="t">名字</span></span><input type="text" v-model="maskForm.name" placeholder="面具名称"></div>
+            </div>
+            <div class="group-title">人设描述（10000 字以内）</div>
+            <div class="card" style="padding:12px">
+              <textarea v-model="maskForm.persona" maxlength="10000" rows="12" placeholder="输入该面具的性格、口吻、背景设定..." style="width:100%;border:none;outline:none;resize:vertical;font-size:14px;color:#1c1c1e;line-height:1.6;min-height:220px;font-family:inherit"></textarea>
+              <div style="text-align:right;font-size:11px;color:#8e8e93">{{ maskForm.persona.length }}/10000</div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ============ 聊天信息设置页 (ChatSettings) ============ -->
+      <transition name="fade">
+        <div v-if="chatSettingsOpen" class="app-full" style="z-index:1350">
+          <div class="af-header">
+            <button class="af-back" @click="chatSettingsOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">聊天信息</span>
+            <span class="af-right"></span>
+          </div>
+          <div class="af-body">
+            <div class="group-title">AI 角色人设管理</div>
+            <div class="card">
+              <div class="row" style="padding:14px 16px;flex-direction:column;align-items:stretch;gap:10px">
+                <span class="t" style="font-size:14px;font-weight:600">SillyTavern 角色卡一键导入</span>
+                <div style="display:flex;gap:8px">
+                  <label class="btn btn-ghost" style="flex:1;font-size:13px">上传 .json<input type="file" accept=".json" hidden @change="importCharCardJson"></label>
+                  <label class="btn btn-ghost" style="flex:1;font-size:13px">拖入 PNG 角色卡<input type="file" accept=".png,image/png" hidden @change="importCharCardPng"></label>
+                </div>
+                <div style="font-size:11px;color:#8e8e93">支持 V1/V2 JSON 角色卡，或 PNG 隐写（tEXt「chara」字段）</div>
+              </div>
+              <div class="row" style="padding:14px 16px;flex-direction:column;align-items:stretch;gap:6px">
+                <span class="t" style="font-size:14px;font-weight:600">AI 核心人设（可展开，支持万字）</span>
+                <textarea v-model="activeContact.persona" rows="10" placeholder="粘贴或输入 AI 核心人设..." style="width:100%;border:1px solid #e5e5ea;border-radius:10px;outline:none;resize:vertical;font-size:13px;color:#1c1c1e;line-height:1.6;padding:10px;min-height:200px;font-family:inherit"></textarea>
+                <div style="text-align:right;font-size:11px;color:#8e8e93">{{ (activeContact.persona||'').length }} 字</div>
+              </div>
+              <div class="row" style="padding:14px 16px;flex-direction:column;align-items:stretch;gap:6px">
+                <span class="t" style="font-size:14px;font-weight:600">User 专属人设</span>
+                <textarea v-model="activeContact.userPersona" rows="4" placeholder="此会话中 User 对应的专属背景设定..." style="width:100%;border:1px solid #e5e5ea;border-radius:10px;outline:none;resize:vertical;font-size:13px;color:#1c1c1e;line-height:1.6;padding:10px;font-family:inherit"></textarea>
+              </div>
+            </div>
+            <div class="group-title">世界书绑定</div>
+            <div class="card">
+              <div class="row"><span class="ri"><span class="t">绑定大板块</span></span><select v-model="activeContact.worldbookCatId" style="border:none;outline:none;background:transparent;font-size:14px;color:#1c1c1e"><option value="">全部板块</option><option v-for="c in data.worldbooks" :key="c.id" :value="c.id">{{ c.name }}</option></select></div>
+              <button class="row" @click="copyPrompt"><span class="ri"><span class="t">预览装配 Prompt</span><span class="s">复制 assembleApiPrompt 结果</span></span><span class="chev">›</span></button>
+            </div>
+            <div class="group-title">其他</div>
+            <div class="card">
+              <div class="row"><span class="ri"><span class="t">角色卡来源</span></span><span style="color:#8e8e93;font-size:14px">{{ activeContact.source || '内置' }}</span></div>
+              <div class="row"><span class="ri"><span class="t">首句 / 场景</span></span><span style="color:#8e8e93;font-size:13px;max-width:60%;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ activeContact.firstMessage || activeContact.scenario || '未设置' }}</span></div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ============ 添加 AI 小号 ============ -->
+      <transition name="fade">
+        <div v-if="addContactOpen" class="app-full" style="z-index:1350">
+          <div class="af-header">
+            <button class="af-back" @click="addContactOpen=false"><svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg></button>
+            <span class="af-title">添加 AI 小号</span>
+            <span class="af-right"><button @click="saveNewContact" style="color:#07c160">保存</button></span>
+          </div>
+          <div class="af-body">
+            <div class="card">
+              <div class="row"><span class="ri"><span class="t">名称</span></span><input type="text" v-model="newContactForm.name" placeholder="AI 小号名称"></div>
+              <div class="row"><span class="ri"><span class="t">标识色</span></span><input type="color" v-model="newContactForm.color" style="width:40px;height:30px;border:none;background:none"></div>
+            </div>
+          </div>
+        </div>
+      </transition>
+
+      <!-- ============ iOS 确认弹窗（替代 confirm） ============ -->
+      <transition name="fade">
+        <div v-if="confirmOpen" class="app-full" style="background:rgba(0,0,0,.5);z-index:1500;align-items:center;justify-content:center">
+          <div style="background:rgba(255,255,255,0.92);backdrop-filter:blur(20px);border-radius:16px;padding:20px;width:80%;max-width:300px;color:#1c1c1e;text-align:center">
+            <div style="font-size:15px;line-height:1.6;margin-bottom:18px">{{ confirmText }}</div>
+            <div style="display:flex;gap:10px">
+              <button class="btn btn-ghost" style="flex:1" @click="cancelConfirm">取消</button>
+              <button class="btn btn-danger" style="flex:1" @click="runConfirm">确定</button>
+            </div>
           </div>
         </div>
       </transition>
@@ -836,11 +980,12 @@ const DEFAULT_DATA = {
   ],
   momentsCover:'', stickerLibrary:[],
   chatContacts:[
-    { id:'c1', name:'林晚', color:'#d98866', messages:[] },
-    { id:'c2', name:'苏晴', color:'#6a8fb5', messages:[] }
+    { id:'c1', name:'林晚', color:'#d98866', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'内置', messages:[] },
+    { id:'c2', name:'苏晴', color:'#6a8fb5', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'内置', messages:[] }
   ],
-  userMasks:[ { id:'mask_default', name:'我', color:'#8e8e93' } ],
-  activeMaskId:'mask_default'
+  userMasks:[ { id:'mask_default', name:'我', color:'#8e8e93', avatar:'', persona:'' } ],
+  activeMaskId:'mask_default',
+  userProfile:{ name:'我', wechatId:'wxid_demo', address:'', avatar:'' }
 }
 
 createApp({
@@ -872,6 +1017,15 @@ createApp({
     const showRecallModal = ref(false), recalledText = ref('')
     const showMaskPicker = ref(false)
 
+    // 第三阶段：个人信息页 / 面具管理器 / 聊天信息页
+    const profileOpen = ref(false), maskManagerOpen = ref(false), chatSettingsOpen = ref(false)
+    const maskEditId = ref(null), maskEditorOpen = ref(false)
+    const maskForm = reactive({ name:'', avatar:'', persona:'' })
+    const addContactOpen = ref(false)
+    const newContactForm = reactive({ name:'', color:'' })
+    const confirmOpen = ref(false), confirmText = ref('')
+    let confirmFn = null
+
     let saved = null; try{ saved = JSON.parse(localStorage.getItem(LS_KEY)) }catch(e){ saved = null }
     const data = reactive(Object.assign(JSON.parse(JSON.stringify(DEFAULT_DATA)), saved || {}))
     // 深合并嵌套对象
@@ -895,7 +1049,9 @@ createApp({
     if(!Array.isArray(data.chatContacts)) data.chatContacts = DEFAULT_DATA.chatContacts
     if(!Array.isArray(data.userMasks)) data.userMasks = DEFAULT_DATA.userMasks
     if(!data.activeMaskId) data.activeMaskId = 'mask_default'
-    data.chatContacts.forEach(c => { if(!Array.isArray(c.messages)) c.messages = [] })
+    data.chatContacts.forEach(c => { if(!Array.isArray(c.messages)) c.messages = []; ['avatar','persona','firstMessage','personality','scenario','worldbookCatId','userPersona','source'].forEach(k => { if(c[k] === undefined) c[k] = '' }) })
+    data.userMasks.forEach(m => { if(m.avatar === undefined) m.avatar = ''; if(m.persona === undefined) m.persona = '' })
+    if(!data.userProfile) data.userProfile = { name:'我', wechatId:'wxid_demo', address:'', avatar:'' }
 
     let toastTimer = null
     const showToast = (m) => { toast.value = m; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 1600) }
@@ -1126,9 +1282,14 @@ createApp({
       chatInput.value = ''
       triggerAiReply()
     }
-    // 新增联系人 / 面具
-    const addContact = () => { const n = prompt('AI 小号名称：'); if(!n) return; data.chatContacts.push({ id:'c'+Date.now(), name:n.trim(), color:'#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'), messages:[] }) }
-    const addMask = () => { const n = prompt('User 面具名称：'); if(!n) return; const m = { id:'mask'+Date.now(), name:n.trim(), color:'#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0') }; data.userMasks.push(m); data.activeMaskId = m.id; showMaskPicker.value = false }
+    // 新增联系人 / 面具（iOS 滑入页，无原生弹窗）
+    const openAddContact = () => { newContactForm.name = ''; newContactForm.color = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'); addContactOpen.value = true }
+    const saveNewContact = () => { const n = newContactForm.name.trim(); if(!n){ showToast('请输入名称'); return } data.chatContacts.push({ id:'c'+Date.now(), name:n, color:newContactForm.color || '#8e8e93', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'手动创建', messages:[] }); addContactOpen.value = false; showToast('已添加') }
+    const openAddMask = () => { maskEditId.value = null; maskForm.name = ''; maskForm.avatar = ''; maskForm.persona = ''; maskEditorOpen.value = true }
+    const editMask = (id) => { const m = maskById(id); if(!m) return; maskEditId.value = id; maskForm.name = m.name; maskForm.avatar = m.avatar || ''; maskForm.persona = m.persona || ''; maskEditorOpen.value = true }
+    const saveMask = () => { const n = maskForm.name.trim(); if(!n){ showToast('请输入面具名称'); return } if(maskEditId.value){ const m = maskById(maskEditId.value); if(m){ m.name = n; m.avatar = maskForm.avatar; m.persona = maskForm.persona } } else { const m = { id:'mask'+Date.now(), name:n, color:'#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'), avatar:maskForm.avatar, persona:maskForm.persona }; data.userMasks.push(m); data.activeMaskId = m.id } maskEditorOpen.value = false; showToast('面具已保存') }
+    const onMaskAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { maskForm.avatar = r.result }; r.readAsDataURL(f); e.target.value = '' }
+    const onUserAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { data.userProfile.avatar = r.result; showToast('头像已更新') }; r.readAsDataURL(f); e.target.value = '' }
     // 【重回】删除最后一条 AI 消息并重新生成
     const regenerate = () => {
       const contact = activeContact.value; if(!contact) return
@@ -1172,7 +1333,7 @@ createApp({
       contact.messages = contact.messages.filter(x => x.id !== id)
       actionMsgId.value = null
     }
-    const eraseAll = () => { if(!confirm('清除全部对话记忆？AI 将彻底遗忘这段对话')) return; const c = activeContact.value; if(c) c.messages = []; drawerOpen.value = false }
+    const eraseAll = () => { drawerOpen.value = false; confirmText.value = '清除全部对话记忆？AI 将彻底遗忘这段对话'; confirmOpen.value = true; confirmFn = () => { const c = activeContact.value; if(c) c.messages = [] } }
     const drawerItems = computed(() => {
       const c = activeContact.value
       return [
@@ -1190,6 +1351,104 @@ createApp({
     let mpTimer = null
     const msgPressStart = (id) => { mpTimer = setTimeout(() => { actionMsgId.value = id }, 550) }
     const msgPressEnd = () => { clearTimeout(mpTimer) }
+
+    // ============ 第三阶段：角色卡导入 + 上下文装配引擎 ============
+    // PNG 隐写角色卡解析（tEXt chunk 的 chara 字段，base64 编码 JSON）
+    const bytesToString = (bytes) => { let s=''; for(let i=0;i<bytes.length;i+=8192){ s += String.fromCharCode.apply(null, bytes.slice(i, i+8192)) } return s }
+    const extractPngChara = (arrayBuffer) => {
+      const bytes = new Uint8Array(arrayBuffer); if(bytes.length < 8) return null
+      let offset = 8; const texts = []
+      while(offset < bytes.length){
+        const len = ((bytes[offset]<<24)|(bytes[offset+1]<<16)|(bytes[offset+2]<<8)|bytes[offset+3]) >>> 0
+        const type = String.fromCharCode(bytes[offset+4], bytes[offset+5], bytes[offset+6], bytes[offset+7])
+        const dataStart = offset + 8
+        if(type === 'tEXt'){
+          const data = bytes.slice(dataStart, dataStart + len)
+          let nul = -1; for(let i=0;i<data.length;i++){ if(data[i]===0){ nul=i; break } }
+          if(nul >= 0){ texts.push({ keyword: bytesToString(data.slice(0,nul)), text: bytesToString(data.slice(nul+1)) }) }
+        }
+        offset = dataStart + len + 4
+      }
+      const chara = texts.find(t => (t.keyword||'').toLowerCase() === 'chara')
+      if(!chara) return null
+      try{ return JSON.parse(atob(chara.text)) }catch(e){ try{ return JSON.parse(chara.text) }catch(e2){ return null } }
+    }
+    const applyCharCard = (json) => {
+      const d = json.data || json
+      const c = activeContact.value
+      if(!c){ showToast('请先进入一个聊天室'); return false }
+      c.name = d.name || c.name
+      c.persona = d.description || d.persona || c.persona
+      c.personality = d.personality || c.personality
+      c.firstMessage = d.first_mes || c.firstMessage
+      c.scenario = d.scenario || c.scenario
+      c.source = 'SillyTavern 导入'
+      return true
+    }
+    const importCharCardJson = (e) => {
+      const f = e.target.files[0]; if(!f) return
+      const r = new FileReader()
+      r.onload = () => { try{ const json = JSON.parse(r.result); if(applyCharCard(json)) showToast('角色卡已导入') }catch(err){ showToast('JSON 解析失败') } }
+      r.readAsText(f); e.target.value = ''
+    }
+    const importCharCardPng = (e) => {
+      const f = e.target.files[0]; if(!f) return
+      const r = new FileReader()
+      r.onload = () => { try{ const json = extractPngChara(r.result); if(!json){ showToast('未在 PNG 中找到角色卡数据'); return } if(applyCharCard(json)) showToast('PNG 角色卡已导入') }catch(err){ showToast('PNG 解析失败') } }
+      r.readAsArrayBuffer(f); e.target.value = ''
+    }
+    // 世界书动态挂载（触发词命中 / 常驻 / 激活 / 深度排序）
+    const assembleWorldbook = (contact, text) => {
+      const catIds = contact.worldbookCatId ? [contact.worldbookCatId] : data.worldbooks.map(c => c.id)
+      const hits = []
+      data.worldbooks.filter(c => catIds.includes(c.id)).forEach(cat => {
+        (cat.entries||[]).forEach(e => {
+          if(!e.enabled) return
+          if(e.constant){ hits.push({ depth:e.depth, content:e.content }) }
+          else {
+            const keys = (e.key||'').split(',').map(k => k.trim().toLowerCase()).filter(Boolean)
+            const tl = (text||'').toLowerCase()
+            if(keys.some(k => k && tl.includes(k))) hits.push({ depth:e.depth, content:e.content })
+          }
+        })
+      })
+      hits.sort((a,b) => a.depth - b.depth)
+      return hits.map(h => h.content).join('\n')
+    }
+    // 核心：上下文装配引擎（未来发 API 时调用）
+    const assembleApiPrompt = (sessionId) => {
+      const contact = (sessionId ? data.chatContacts.find(c => c.id === sessionId) : activeContact.value) || activeContact.value
+      if(!contact) return ''
+      const parts = []
+      // 1. 系统全局规则
+      const sys = []
+      if(data.styleFilter) sys.push('文风过滤：' + data.styleFilter)
+      sys.push('当前时间：' + new Date().toLocaleString('zh-CN'))
+      parts.push('【系统全局规则】\n' + sys.join('\n'))
+      // 2. AI 核心人设
+      if(contact.persona) parts.push('【AI 核心人设 · ' + contact.name + '】\n' + contact.persona + (contact.personality ? '\n性格：' + contact.personality : ''))
+      // 3. User 面具 + 专属设定
+      const mask = maskById(data.activeMaskId)
+      if(mask && mask.persona) parts.push('【User 面具 · ' + mask.name + '】\n' + mask.persona)
+      if(contact.userPersona) parts.push('【User 专属设定】\n' + contact.userPersona)
+      // 4. 世界书动态挂载
+      const recent = contact.messages.slice(-6).map(m => m.text).join('\n')
+      const wb = assembleWorldbook(contact, recent)
+      if(wb) parts.push('【世界书挂载】\n' + wb)
+      // 5. 上下文组装
+      const history = contact.messages.slice(-10).map(m => {
+        const who = m.sender === 'user' ? ((maskById(m.maskId)||{}).name || 'User') : contact.name
+        return who + ': ' + (m.recalled ? '（已撤回）' : m.text)
+      }).join('\n')
+      parts.push('【对话历史】\n' + history)
+      return parts.join('\n\n')
+    }
+    const copyPrompt = () => { const p = assembleApiPrompt(); if(p){ try{ navigator.clipboard.writeText(p); showToast('Prompt 已复制') }catch(e){ showToast('复制失败') } } else { showToast('暂无内容') } }
+    // iOS 确认弹窗（替代 confirm）
+    const runConfirm = () => { confirmOpen.value = false; if(confirmFn){ const fn = confirmFn; confirmFn = null; fn() } }
+    const cancelConfirm = () => { confirmOpen.value = false; confirmFn = null }
+    // 聊天信息页
+    const openChatSettings = () => { chatSettingsOpen.value = true; drawerOpen.value = false }
 
     // 内存监控
     const memoryMB = ref(0)
@@ -1227,13 +1486,15 @@ createApp({
       activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
       chatOpen, activeContactId, drawerOpen, typing, chatInput, editingMsgId, editText, showThoughts, actionMsgId, showRecallModal, recalledText, showMaskPicker,
       activeContact, maskById, actionMsg,
+      profileOpen, maskManagerOpen, chatSettingsOpen, maskEditId, maskEditorOpen, maskForm, addContactOpen, newContactForm, confirmOpen, confirmText,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
       statusColor, homeIndicatorColor, memoryText, memoryPercent, activePresetName, settingsTitle,
       tapApp, longPressStart, longPressEnd, editIcon, onIconFile, saveIcon, clearIcon, onWallUpload, pickFont, applyFontUrl, onFontFile,
       settingsBack, editPreset, savePreset, closePresetForm, activatePreset,
       catForm, saveCat, catDel, catToggle, wbForm, saveWb, closeWbForm, wbDel, toggleEntry, importSillyTavern, importCSV,
       toggleLike, openComment, submitComment, onCoverUpload, addStickerLocal, addStickerUrl, delSticker, exportStickers, importStickers, timeAgo,
-      openChat, triggerAiReply, sendChat, addContact, addMask, regenerate, toggleThoughts, startEdit, saveEdit, recallMessage, viewRecalled, eraseMessage, eraseAll, msgPressStart, msgPressEnd, drawerItems,
+      openChat, triggerAiReply, sendChat, openAddContact, saveNewContact, openAddMask, editMask, saveMask, onMaskAvatar, onUserAvatar, regenerate, toggleThoughts, startEdit, saveEdit, recallMessage, viewRecalled, eraseMessage, eraseAll, msgPressStart, msgPressEnd, drawerItems,
+      importCharCardJson, importCharCardPng, assembleApiPrompt, assembleWorldbook, copyPrompt, runConfirm, cancelConfirm, openChatSettings,
       toggleKeepAlive, exportBackup, importBackup, onScroll, pagesRef }
   }
 }).mount('#app')
