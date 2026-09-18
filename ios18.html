@@ -593,6 +593,8 @@
                     <div v-if="msgActions(m.text).length" style="margin-top:4px;text-align:center">
                       <div v-for="(a,i) in msgActions(m.text)" :key="i" style="font-size:11px;color:#8e8e93;font-style:italic;line-height:1.4">{{ a }}</div>
                     </div>
+                    <!-- 实时翻译（外文原文下方的小字译文，微信风格） -->
+                    <div v-if="m.translation" style="margin-top:4px;padding:6px 10px;border-radius:8px;background:rgba(0,0,0,0.04);font-size:12px;color:#8e8e93;line-height:1.5;text-align:left">译：{{ m.translation }}</div>
                     <!-- 心声折叠面板 -->
                     <div v-if="m.sender==='ai' && showThoughts && m.thought" style="margin-top:4px;background:rgba(255,255,255,0.55);border-radius:8px;padding:7px 10px;font-size:12px;font-style:italic;color:#6b6b6b">{{ m.thought }}</div>
                   </template>
@@ -1360,27 +1362,51 @@ createApp({
 
     // 字体
     const fontFamily = computed(() => {
-      if(data.font === 'custom' && data.fontUrl) return '"SystemUI", ' + fonts[0].family
+      if(data.font === 'custom') return "'SystemUI', " + fonts[0].family
       const f = fonts.find(x => x.id === data.font); return f ? f.family : fonts[0].family
     })
     const fontName = computed(() => { if(data.font === 'custom') return '自定义字体'; const f = fonts.find(x => x.id === data.font); return f ? f.name : '系统默认' })
     const pickFont = (id) => { data.font = id }
-    const applyFontUrl = () => {
-      const u = fontUrl.value.trim(); if(!u){ showToast('请输入字体 URL'); return }
-      try{ const ff = new FontFace('SystemUI', 'url(' + u + ')'); ff.load().then(f => { document.fonts.add(f); data.fontUrl = u; data.font = 'custom'; showToast('字体已应用') }).catch(() => showToast('字体加载失败')) }catch(e){ showToast('字体加载失败') }
-    }
-    // 本地字体动态注入（绕过浏览器本地路径限制，使用 blob URL + @font-face）
-    const importLocalFont = (event) => {
-      const file = event.target.files[0]; if(!file) return
-      const blobUrl = URL.createObjectURL(file)
+    // 字体存储：用 IndexedDB 持久化字体文件（localStorage 对字体过大易超限）
+    let _fontDB = null
+    const openFontDB = () => new Promise((res, rej) => {
+      if(_fontDB){ res(_fontDB); return }
+      const req = indexedDB.open('ios18_fonts', 1)
+      req.onupgradeneeded = () => { req.result.createObjectStore('fonts') }
+      req.onsuccess = () => { _fontDB = req.result; res(_fontDB) }
+      req.onerror = () => rej(req.error)
+    })
+    const saveFontFile = (file) => openFontDB().then(db => new Promise((res, rej) => { const tx = db.transaction('fonts', 'readwrite'); tx.objectStore('fonts').put(file, 'custom'); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error) }))
+    const loadFontFile = () => openFontDB().then(db => new Promise((res, rej) => { const req = db.transaction('fonts', 'readonly').objectStore('fonts').get('custom'); req.onsuccess = () => res(req.result || null); req.onerror = () => rej(req.error) }))
+    const applyFontBlob = (blobOrUrl) => {
+      const src = (blobOrUrl && typeof Blob !== 'undefined' && blobOrUrl instanceof Blob) ? URL.createObjectURL(blobOrUrl) : blobOrUrl
       let style = document.getElementById('custom-font-style')
       if(!style){ style = document.createElement('style'); style.id = 'custom-font-style'; document.head.appendChild(style) }
-      style.textContent = "@font-face { font-family: 'SystemUI'; src: url('" + blobUrl + "'); }"
+      style.textContent = "@font-face { font-family: 'SystemUI'; src: url('" + src + "'); }"
       document.documentElement.style.fontFamily = "'SystemUI', -apple-system, 'PingFang SC', sans-serif"
-      data.font = 'custom'; data.fontUrl = blobUrl
-      showToast('字体已导入并应用')
+    }
+    const applyFontUrl = () => {
+      const u = fontUrl.value.trim(); if(!u){ showToast('请输入字体 URL'); return }
+      applyFontBlob(u)
+      data.font = 'custom'; data.fontUrl = u
+      showToast('字体已应用')
+    }
+    // 本地字体：存入 IndexedDB 持久化并立即应用
+    const importLocalFont = async (event) => {
+      const file = event.target.files[0]; if(!file) return
+      try{ await saveFontFile(file) }catch(e){ console.error('字体保存失败', e) }
+      applyFontBlob(file)
+      data.font = 'custom'
+      showToast('字体已保存并应用')
     }
     const onFontFile = importLocalFont
+    // 页面加载时恢复已保存的自定义字体
+    onMounted(async () => {
+      if(data.font === 'custom'){
+        if(data.fontUrl && /^https?:/i.test(data.fontUrl)){ applyFontBlob(data.fontUrl) }
+        else { try{ const f = await loadFontFile(); if(f) applyFontBlob(f) }catch(e){} }
+      }
+    })
 
 
     // 壁纸
@@ -1693,6 +1719,13 @@ createApp({
       if(j.data && j.data[0] && j.data[0].content) return j.data[0].content
       return ''
     }
+    // 拆分原文与译文（「翻译：」行之后为译文）
+    const splitTranslation = (t) => {
+      if(!t) return { text:'', translation:'' }
+      const m = t.match(/([\s\S]*?)\n+\s*(?:翻译|译文|译)[：:]\s*([\s\S]*)/)
+      if(m) return { text: m[1].trim(), translation: m[2].trim() }
+      return { text: t, translation: '' }
+    }
     const simulateReply = (alt, mask) => {
       typing.value = true
       setTimeout(() => {
@@ -1732,9 +1765,9 @@ createApp({
           })
           if(!r.ok){ const t = await r.text().catch(()=>''); throw new Error('HTTP '+r.status+(t ? ' · '+t.slice(0,200) : '')) }
           const j = await r.json()
-          const text = parseAiText(j)
+          const parsed = splitTranslation(parseAiText(j))
           const s2 = sessionFor(alt, mask)
-          if(s2 && text) s2.push({ id:'msg'+Date.now(), sender:'ai', text, thought:'', time:Date.now() })
+          if(s2 && parsed.text) s2.push({ id:'msg'+Date.now(), sender:'ai', text:parsed.text, translation:parsed.translation, thought:'', time:Date.now() })
         }catch(err){
           console.error('API 请求失败', err)
           showToast('连接失败：' + err.message)
@@ -1946,7 +1979,7 @@ createApp({
       if(meta && meta.language && meta.language !== '中文') sys.push('请使用' + meta.language + '回复')
       if(meta && meta.offlineWriting) sys.push('回复中必须使用 * * 括号描写角色的线下动作、神态、心理活动与环境交互')
       if(meta && meta.translate && meta.translate !== '不翻译') sys.push('将你的回复' + meta.translate)
-      if(meta && meta.translateLive) sys.push('若输出外文，请在下方附上小号中文翻译')
+      if(meta && meta.translateLive) sys.push('若输出外语，请在回复末尾另起一行，以「翻译：」开头附上对应的中文翻译')
       if(meta && meta.stickerUnderstanding) sys.push('可将用户发送的图片/表情包转为视觉描述理解，并允许返回预设表情包 URL')
       parts.push('【系统全局规则】\n' + sys.join('\n'))
       if(meta && meta.summarizedMemory) parts.push('【记忆摘要】\n' + meta.summarizedMemory)
