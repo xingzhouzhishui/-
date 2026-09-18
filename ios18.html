@@ -1658,7 +1658,7 @@ createApp({
       if(!base){ showToast('请先在预设中填写 Base URL'); return }
       fetch(apiEndpoint(base, '/v1/models'), { headers: { 'Authorization': 'Bearer ' + (key || '') } })
         .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.json() })
-        .then(j => { const list = (j.data || []).map(m => m.id).filter(Boolean); availableModels.value = list; data.availableModels = list; if(list.length) showToast('连接成功，已拉取 ' + list.length + ' 个模型'); else showToast('连接成功，但未返回模型列表') })
+        .then(j => { const list = (j.data || []).map(m => m.id).filter(Boolean); availableModels.value = list; data.availableModels = list; let cleared = false; data.apiPresets.forEach(p => { if(p.model && !list.includes(p.model)){ p.model = ''; cleared = true } }); data.chatContacts.forEach(c => { if(c.apiModel && !list.includes(c.apiModel)){ c.apiModel = ''; cleared = true } }); Object.values(data.chatSessions||{}).forEach(s => { if(s && s._meta && s._meta.model && !list.includes(s._meta.model)){ s._meta.model = ''; cleared = true } }); if(list.length) showToast(cleared ? '连接成功，已拉取 ' + list.length + ' 个模型（已清除失效旧模型）' : '连接成功，已拉取 ' + list.length + ' 个模型'); else showToast('连接成功，但未返回模型列表') })
         .catch(err => { availableModels.value = []; showToast('连接失败：' + err.message) })
     }
     const resolveApi = (altId) => {
@@ -1669,7 +1669,10 @@ createApp({
       const useChar = !!(c && c.apiUrl && c.apiKey)
       const url = useChar ? c.apiUrl : ((preset && preset.baseUrl) || '')
       const key = useChar ? c.apiKey : ((preset && preset.apiKey) || '')
-      const model = (useChar && c.apiModel) || (meta && meta.model) || (preset && preset.model) || (data.availableModels && data.availableModels[0]) || ''
+      const avail = data.availableModels || []
+      let model = (useChar && c.apiModel) || (meta && meta.model) || (preset && preset.model) || ''
+      // 若已拉取模型列表，且当前模型不在其中，自动采用列表第一个，避免残留旧模型名导致 400
+      if(avail.length && (!model || !avail.includes(model))) model = avail[0]
       const temperature = (meta && meta.temperature != null) ? meta.temperature : 0.8
       return { url, key, model, temperature }
     }
