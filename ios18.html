@@ -1703,7 +1703,7 @@ createApp({
       }, 2000)
     }
     // 真实 API 请求（发送与请求分离：仅此函数/重回/修改会触发回复）
-    const triggerApiReply = () => {
+    const triggerApiReply = async () => {
       const alt = activeContactId.value, mask = data.activeMaskId
       const meta = altMeta(alt)
       drawerOpen.value = false
@@ -1715,32 +1715,33 @@ createApp({
       const cfg = resolveApi(alt)
       if(!cfg.url || !cfg.key){ showToast('未配置 API 地址或密钥，请在「设置 → API 预设」中填写'); return }
       if(!cfg.model){ showToast('未选择模型：请先在设置中「测试连接与拉取模型」并选择模型'); return }
-      const s = sessionFor(alt, mask)
-      const prompt = assembleApiPrompt(alt)
-      const lastUser = s ? s.slice().reverse().find(m => m.sender === 'user' && !m.recalled) : null
       const n = Math.max(1, Math.min(10, replyCount.value || 1))
       typing.value = true
-      let pending = n
-      const done = () => { pending--; if(pending <= 0) typing.value = false }
       for(let i = 0; i < n; i++){
-        const variation = n > 1 ? ('（这是本次生成的第 ' + (i+1) + ' / ' + n + ' 条候选回复，请给出不同的内容与措辞）') : ''
-        const messages = [{ role:'system', content: prompt }, { role:'user', content: (lastUser ? lastUser.text : '请继续回复') + variation }]
-        fetch(apiEndpoint(cfg.url, '/v1/chat/completions'), {
-          method:'POST',
-          headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+cfg.key },
-          body: JSON.stringify({ model:cfg.model, temperature:cfg.temperature, messages })
-        }).then(async r => {
+        // 每次重新装配 prompt，包含此前已生成的消息，保证上下文连贯
+        const prompt = assembleApiPrompt(alt)
+        const sNow = sessionFor(alt, mask)
+        const lastUser = sNow ? sNow.slice().reverse().find(m => m.sender === 'user' && !m.recalled) : null
+        const continuation = i === 0 ? '' : '（请自然连贯地继续往下说，保持与上一条的语气、动作和情境一致，不要重复）'
+        const messages = [{ role:'system', content: prompt }, { role:'user', content: (lastUser ? lastUser.text : '请继续回复') + continuation }]
+        try{
+          const r = await fetch(apiEndpoint(cfg.url, '/v1/chat/completions'), {
+            method:'POST',
+            headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+cfg.key },
+            body: JSON.stringify({ model:cfg.model, temperature:cfg.temperature, messages })
+          })
           if(!r.ok){ const t = await r.text().catch(()=>''); throw new Error('HTTP '+r.status+(t ? ' · '+t.slice(0,200) : '')) }
-          return r.json()
-        }).then(j => {
+          const j = await r.json()
           const text = parseAiText(j)
           const s2 = sessionFor(alt, mask)
           if(s2 && text) s2.push({ id:'msg'+Date.now(), sender:'ai', text, thought:'', time:Date.now() })
-        }).catch(err => {
+        }catch(err){
           console.error('API 请求失败', err)
           showToast('连接失败：' + err.message)
-        }).finally(done)
+          break
+        }
       }
+      typing.value = false
     }
     const sendChat = () => {
       const meta = currentMeta.value
@@ -1954,11 +1955,11 @@ createApp({
       if(mask && mask.persona) parts.push('【User 面具 · ' + mask.name + '】\n' + mask.persona)
       if(contact.userPersona) parts.push('【User 专属设定】\n' + contact.userPersona)
       // 4. 世界书动态挂载（仅当前时空线 + 绑定板块）
-      const recent = s.slice(-6).map(m => m.text).join('\n')
+      const recent = s.slice(-20).map(m => m.text).join('\n')
       const wb = assembleWorldbook(contact, recent)
       if(wb) parts.push('【世界书挂载】\n' + wb)
-      // 5. 上下文组装（仅当前时空线历史）
-      const history = s.slice(-10).map(m => {
+      // 5. 上下文组装（保留最近 20 轮对话记忆）
+      const history = s.slice(-40).map(m => {
         const who = m.sender === 'user' ? ((maskById(m.maskId)||{}).name || (mask ? mask.name : 'User')) : contact.name
         return who + ': ' + (m.recalled ? '（已撤回）' : m.text)
       }).join('\n')
