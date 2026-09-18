@@ -372,6 +372,14 @@
             </div>
             <!-- 通讯录 tab -->
             <div v-else-if="activeTab==='contacts'" style="background:#ededed;min-height:100%;position:relative">
+              <!-- 搜索栏 -->
+              <div style="padding:10px 16px;background:#ededed">
+                <div style="display:flex;align-items:center;gap:8px;background:#fff;border-radius:8px;padding:8px 12px">
+                  <svg width="15" height="15" viewBox="0 0 24 24" style="fill:none;stroke:#8e8e93;stroke-width:2;stroke-linecap:round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input v-model="contactSearch" placeholder="搜索" style="flex:1;border:none;outline:none;font-size:14px;background:transparent;color:#1a1a1a">
+                  <span v-if="contactSearch" @click="contactSearch=''" style="color:#8e8e93;cursor:pointer;font-size:16px">×</span>
+                </div>
+              </div>
               <!-- 四大头部入口 -->
               <div style="background:#fff;margin-bottom:10px">
                 <div class="row" style="padding:13px 16px;border-bottom:1px solid #f0f0f0" @click="openAddContact">
@@ -556,7 +564,7 @@
             <div class="header-title-wrap" style="flex:1;text-align:center;min-width:0">
               <div style="font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ displayName(activeContactId) }}</div>
               <button @click="showMaskPicker=true" style="background:none;border:none;color:#8e8e93;font-size:11px;cursor:pointer;padding:0;display:inline-flex;align-items:center;gap:3px">
-                <span style="width:14px;height:14px;border-radius:4px;display:inline-block" :style="{background: (maskById(data.activeMaskId)||{}).color || '#8e8e93'}"></span>
+                <span style="width:14px;height:14px;border-radius:4px;display:inline-block;overflow:hidden;background-size:cover;background-position:center" :style="(maskById(data.activeMaskId)||{}).avatar ? {backgroundImage:'url('+(maskById(data.activeMaskId)||{}).avatar+')'} : {background:(maskById(data.activeMaskId)||{}).color || '#8e8e93'}"></span>
                 {{ (maskById(data.activeMaskId)||{}).name || '面具' }} ▾
               </button>
             </div>
@@ -570,7 +578,7 @@
               <div v-else style="display:flex;margin-bottom:12px;align-items:center" :style="{justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start'}" @mousedown="msgPressStart(m.id)" @mouseup="msgPressEnd" @mouseleave="msgPressEnd" @touchstart="msgPressStart(m.id)" @touchend="msgPressEnd" @touchmove="msgPressEnd" @contextmenu.prevent="actionMsgId=m.id" @dblclick="m.sender==='user' && !m.recalled && startEdit(m.id)" @click="multiSelect && toggleSelect(m.id)">
                 <span v-if="multiSelect" style="width:22px;height:22px;border-radius:50%;border:2px solid #c7c7cc;flex-shrink:0;margin-right:8px;display:flex;align-items:center;justify-content:center;font-size:14px" :style="isSelected(m.id) ? 'background:#07c160;border-color:#07c160;color:#fff' : 'background:#fff;color:transparent'">✓</span>
                 <!-- AI 头像 -->
-                <span v-if="m.sender==='ai'" style="width:38px;height:38px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-right:8px" :style="{background: activeContact ? activeContact.color : '#999'}">{{ activeContact ? activeContact.name[0] : '?' }}</span>
+                <span v-if="m.sender==='ai'" style="width:38px;height:38px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-right:8px;overflow:hidden;background-size:cover;background-position:center" :style="(activeContact && activeContact.avatar) ? {backgroundImage:'url('+activeContact.avatar+')'} : {background: activeContact ? activeContact.color : '#999'}"><span v-if="!(activeContact && activeContact.avatar)">{{ activeContact ? activeContact.name[0] : '?' }}</span></span>
                 <div style="max-width:74%">
                   <!-- 撤回提示 -->
                   <div v-if="m.recalled" style="background:rgba(0,0,0,0.06);border-radius:8px;padding:8px 12px;font-size:13px;color:#8e8e93">
@@ -600,7 +608,7 @@
                   </template>
                 </div>
                 <!-- User 面具头像 -->
-                <span v-if="m.sender==='user'" style="width:38px;height:38px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-left:8px" :style="{background: (maskById(m.maskId)||{}).color || '#8e8e93'}">{{ (maskById(m.maskId)||{}).name ? (maskById(m.maskId).name[0]) : '我' }}</span>
+                <span v-if="m.sender==='user'" style="width:38px;height:38px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-left:8px;overflow:hidden;background-size:cover;background-position:center" :style="(maskById(m.maskId)||{}).avatar ? {backgroundImage:'url('+(maskById(m.maskId)||{}).avatar+')'} : {background:(maskById(m.maskId)||{}).color || '#8e8e93'}"><span v-if="!(maskById(m.maskId)||{}).avatar">{{ (maskById(m.maskId)||{}).name ? (maskById(m.maskId).name[0]) : '我' }}</span></span>
               </div>
               </div>
               <!-- 正在输入 -->
@@ -700,7 +708,7 @@
           <div style="background:#fff;border-radius:16px;padding:20px;width:84%;max-width:320px;color:#1c1c1e">
             <h3 style="margin:0 0 14px;font-size:17px">切换 User 面具</h3>
             <div v-for="m in data.userMasks" :key="m.id" class="row" @click="data.activeMaskId=m.id;showMaskPicker=false">
-              <span style="width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;flex-shrink:0" :style="{background:m.color}">{{ m.name[0] }}</span>
+              <span style="width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;flex-shrink:0;overflow:hidden;background-size:cover;background-position:center" :style="m.avatar ? {backgroundImage:'url('+m.avatar+')'} : {background:m.color}"><span v-if="!m.avatar">{{ m.name[0] }}</span></span>
               <span class="ri"><span class="t">{{ m.name }}</span></span>
               <span v-if="m.id===data.activeMaskId" style="color:#07c160">✓</span>
             </div>
@@ -1378,16 +1386,21 @@ createApp({
     })
     const saveFontFile = (file) => openFontDB().then(db => new Promise((res, rej) => { const tx = db.transaction('fonts', 'readwrite'); tx.objectStore('fonts').put(file, 'custom'); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error) }))
     const loadFontFile = () => openFontDB().then(db => new Promise((res, rej) => { const req = db.transaction('fonts', 'readonly').objectStore('fonts').get('custom'); req.onsuccess = () => res(req.result || null); req.onerror = () => rej(req.error) }))
-    const applyFontBlob = (blobOrUrl) => {
-      const src = (blobOrUrl && typeof Blob !== 'undefined' && blobOrUrl instanceof Blob) ? URL.createObjectURL(blobOrUrl) : blobOrUrl
+    const applyFontBlob = (blobOrUrl, format) => {
+      const isBlob = (typeof Blob !== 'undefined' && blobOrUrl instanceof Blob)
+      const src = isBlob ? URL.createObjectURL(blobOrUrl) : blobOrUrl
+      const fmt = format ? (" format('" + format + "')") : ''
       let style = document.getElementById('custom-font-style')
       if(!style){ style = document.createElement('style'); style.id = 'custom-font-style'; document.head.appendChild(style) }
-      style.textContent = "@font-face { font-family: 'SystemUI'; src: url('" + src + "'); }"
+      style.textContent = "@font-face { font-family: 'SystemUI'; src: url('" + src + "')" + fmt + "; }"
       document.documentElement.style.fontFamily = "'SystemUI', -apple-system, 'PingFang SC', sans-serif"
+      if(document.fonts && document.fonts.load){ document.fonts.load("16px SystemUI").catch(e => console.warn('字体加载', e)) }
     }
+    const fontFormatOf = (file) => { const n = (file && file.name || '').toLowerCase(); if(n.endsWith('.woff2')) return 'woff2'; if(n.endsWith('.woff')) return 'woff'; if(n.endsWith('.otf')) return 'opentype'; if(n.endsWith('.ttf')) return 'truetype'; return '' }
     const applyFontUrl = () => {
       const u = fontUrl.value.trim(); if(!u){ showToast('请输入字体 URL'); return }
-      applyFontBlob(u)
+      const fmt = /\.woff2$/i.test(u) ? 'woff2' : /\.woff$/i.test(u) ? 'woff' : /\.otf$/i.test(u) ? 'opentype' : /\.ttf$/i.test(u) ? 'truetype' : ''
+      applyFontBlob(u, fmt)
       data.font = 'custom'; data.fontUrl = u
       showToast('字体已应用')
     }
@@ -1395,16 +1408,16 @@ createApp({
     const importLocalFont = async (event) => {
       const file = event.target.files[0]; if(!file) return
       try{ await saveFontFile(file) }catch(e){ console.error('字体保存失败', e) }
-      applyFontBlob(file)
+      applyFontBlob(file, fontFormatOf(file))
       data.font = 'custom'
-      showToast('字体已保存并应用')
+      showToast('字体已保存并应用（约 ' + Math.round(file.size/1024/1024) + ' MB）')
     }
     const onFontFile = importLocalFont
     // 页面加载时恢复已保存的自定义字体
     onMounted(async () => {
       if(data.font === 'custom'){
-        if(data.fontUrl && /^https?:/i.test(data.fontUrl)){ applyFontBlob(data.fontUrl) }
-        else { try{ const f = await loadFontFile(); if(f) applyFontBlob(f) }catch(e){} }
+        if(data.fontUrl && /^https?:/i.test(data.fontUrl)){ applyFontBlob(data.fontUrl, fontFormatOf({ name:data.fontUrl })) }
+        else { try{ const f = await loadFontFile(); if(f) applyFontBlob(f, fontFormatOf(f)) }catch(e){} }
       }
     })
 
@@ -1622,10 +1635,13 @@ createApp({
     const currentMeta = computed(() => altMeta(activeContactId.value))
     const displayName = (altId) => { const c = data.chatContacts.find(x => x.id === altId); const m = altMeta(altId); return (m && m.remark) ? m.remark : (c ? c.name : '') }
     const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').concat('#')
+    const contactSearch = ref('')
     const contactGroups = computed(() => {
+      const q = contactSearch.value.trim().toLowerCase()
       const map = {}
       data.chatContacts.forEach(c => {
         const name = displayName(c.id) || '#'
+        if(q && !(name.toLowerCase().includes(q) || (c.signature||'').toLowerCase().includes(q))) return
         const ch = name.charAt(0).toUpperCase()
         const letter = /[A-Z]/.test(ch) ? ch : '#'
         ;(map[letter] = map[letter] || []).push(c)
@@ -1751,6 +1767,8 @@ createApp({
       const n = Math.max(1, Math.min(10, (meta && meta.replyCount) || 1))
       typing.value = true
       for(let i = 0; i < n; i++){
+        // 间隔避免连续请求被限流
+        if(i > 0) await new Promise(r => setTimeout(r, 600))
         // 每次重新装配 prompt，包含此前已生成的消息，保证上下文连贯
         const prompt = assembleApiPrompt(alt)
         const sNow = sessionFor(alt, mask)
@@ -1770,7 +1788,7 @@ createApp({
           if(s2 && parsed.text) s2.push({ id:'msg'+Date.now(), sender:'ai', text:parsed.text, translation:parsed.translation, thought:'', time:Date.now() })
         }catch(err){
           console.error('API 请求失败', err)
-          showToast('连接失败：' + err.message)
+          showToast('第 ' + (i+1) + ' / ' + n + ' 条生成失败：' + err.message)
           break
         }
       }
@@ -2043,7 +2061,7 @@ createApp({
       wbSearch, showCatForm, showImportMenu, catFormData, filteredCategories,
       activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
       chatOpen, activeContactId, drawerOpen, typing, chatInput, editingMsgId, editText, showThoughts, actionMsgId, showRecallModal, recalledText, showMaskPicker,
-      activeContact, maskById, actionMsg, chatMessages, lastMsgOf, sessionFor, currentMeta, displayName, alphabet, contactGroups, scrollToGroup, memoOpen, memoContent,
+      activeContact, maskById, actionMsg, chatMessages, lastMsgOf, sessionFor, currentMeta, displayName, alphabet, contactSearch, contactGroups, scrollToGroup, memoOpen, memoContent,
       multiSelect, selectedIds, transferOpen, transferAmount, transferType, giftOpen, gifts,
       profileOpen, maskManagerOpen, chatSettingsOpen, maskEditId, maskEditorOpen, maskForm, addContactOpen, newContactForm, confirmOpen, confirmText,
       charAvatarUrl, memberInfoOpen, memberInfoId, showDeleteSheet, memberInfo,
