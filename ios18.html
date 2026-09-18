@@ -626,11 +626,6 @@
             <div v-else style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:#f7f7f7;border-top:1px solid #e5e5ea;flex-shrink:0">
               <button @click="showToast('语音（占位）')" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;cursor:pointer">♫</button>
               <input v-model="chatInput" @keydown.enter="sendChat" :placeholder="currentMeta && currentMeta.blacklisted ? '你已被对方拉黑，无法发送消息' : '发送消息'" :disabled="currentMeta && currentMeta.blacklisted" style="flex:1;border:none;outline:none;background:#fff;border-radius:18px;padding:8px 14px;font-size:14px;color:#1c1c1e">
-              <div style="display:flex;align-items:center;background:#fff;border:1px solid #e5e5ea;border-radius:12px;overflow:hidden;flex-shrink:0" title="回复条数">
-                <button @click="decReplyCount" style="width:24px;height:28px;border:none;background:none;color:#1c1c1e;font-size:14px;cursor:pointer">−</button>
-                <span style="font-size:12px;color:#1c1c1e;min-width:20px;text-align:center">{{ replyCount }}条</span>
-                <button @click="incReplyCount" style="width:24px;height:28px;border:none;background:none;color:#1c1c1e;font-size:14px;cursor:pointer">＋</button>
-              </div>
               <button @click="triggerApiReply" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;font-size:20px;cursor:pointer" title="生成回复">✨</button>
               <button @click="drawerOpen=!drawerOpen" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;font-size:22px;cursor:pointer">＋</button>
               <button @click="sendChat" style="padding:6px 14px;border:none;border-radius:6px;background:#07c160;color:#fff;font-size:14px;cursor:pointer">发送</button>
@@ -809,6 +804,10 @@
                 <input type="range" min="0" max="100" v-model.number="currentMeta.voiceFreq">
               </div>
               <div class="row"><span class="ri"><span class="t">特定角色音色 (Voice ID)</span></span><input type="text" v-model="currentMeta.voiceId" placeholder="Minimax Voice ID"></div>
+              <div class="row" style="flex-direction:column;align-items:stretch;gap:6px">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span class="t" style="font-size:14px">回复条数</span><span style="color:#8e8e93;font-size:13px">{{ currentMeta.replyCount }} 条</span></div>
+                <input type="range" min="1" max="10" step="1" v-model.number="currentMeta.replyCount">
+              </div>
             </div>
 
             <!-- 时空与世界书挂载 -->
@@ -1290,9 +1289,6 @@ createApp({
     const transferOpen = ref(false), transferAmount = ref(''), transferType = ref('transfer')
     const giftOpen = ref(false)
     const gifts = ['一杯温热的咖啡', '一张黑胶唱片', '一副定制袖扣', '一本书', '一束花']
-    const replyCount = ref(1)
-    const incReplyCount = () => { replyCount.value = Math.min(10, replyCount.value + 1) }
-    const decReplyCount = () => { replyCount.value = Math.max(1, replyCount.value - 1) }
 
     // 第三阶段：个人信息页 / 面具管理器 / 聊天信息页
     const profileOpen = ref(false), maskManagerOpen = ref(false), chatSettingsOpen = ref(false)
@@ -1582,7 +1578,7 @@ createApp({
     })
     const lastMsgOf = (altId) => { const s = (data.chatSessions && data.chatSessions[altId]) ? data.chatSessions[altId][data.activeMaskId] : null; return (s && s.length) ? s[s.length-1] : null }
     // 第五阶段：每个 AI 小号 (altId) 的本地参数锁（存于 chatSessions[altId]._meta）
-    const META_DEFAULTS = () => ({ remark:'', callName:'', photoFreq:0, voiceFreq:0, voiceId:'', worldbookCatId:'', model:'', temperature:0.8, blacklisted:false, mutePeriod:'', offlineWriting:false, translate:'不翻译', language:'中文', translateLive:false, stickerUnderstanding:false, mood:'平静', location:'在手机的另一边', innerMonologue:'', summarizedMemory:'', messageCountSinceLastSummary:0 })
+    const META_DEFAULTS = () => ({ remark:'', callName:'', photoFreq:0, voiceFreq:0, voiceId:'', worldbookCatId:'', model:'', temperature:0.8, blacklisted:false, mutePeriod:'', offlineWriting:false, translate:'不翻译', language:'中文', translateLive:false, stickerUnderstanding:false, mood:'平静', location:'在手机的另一边', innerMonologue:'', summarizedMemory:'', messageCountSinceLastSummary:0, replyCount:1 })
     const altMeta = (altId) => {
       if(!altId) return null
       if(!data.chatSessions) data.chatSessions = {}
@@ -1590,6 +1586,10 @@ createApp({
       if(!data.chatSessions[altId]._meta){
         const c = data.chatContacts.find(x => x.id === altId)
         data.chatSessions[altId]._meta = { ...META_DEFAULTS(), worldbookCatId: (c && c.worldbookCatId) || '' }
+      } else {
+        // 向后兼容：补齐新增字段默认值
+        const def = META_DEFAULTS()
+        for(const k in def){ if(data.chatSessions[altId]._meta[k] === undefined) data.chatSessions[altId]._meta[k] = def[k] }
       }
       return data.chatSessions[altId]._meta
     }
@@ -1715,7 +1715,7 @@ createApp({
       const cfg = resolveApi(alt)
       if(!cfg.url || !cfg.key){ showToast('未配置 API 地址或密钥，请在「设置 → API 预设」中填写'); return }
       if(!cfg.model){ showToast('未选择模型：请先在设置中「测试连接与拉取模型」并选择模型'); return }
-      const n = Math.max(1, Math.min(10, replyCount.value || 1))
+      const n = Math.max(1, Math.min(10, (meta && meta.replyCount) || 1))
       typing.value = true
       for(let i = 0; i < n; i++){
         // 每次重新装配 prompt，包含此前已生成的消息，保证上下文连贯
@@ -1784,7 +1784,8 @@ createApp({
     const regenerate = () => {
       const s = currentSession(); if(!s) return
       drawerOpen.value = false
-      for(let i=s.length-1;i>=0;i--){ if(s[i].sender==='ai'){ s.splice(i,1); break } }
+      // 删除这一轮 char 的全部回复（回到最后一条 user 消息之后），再整体重回
+      for(let i=s.length-1;i>=0;i--){ if(s[i].sender==='ai') s.splice(i,1); else break }
       triggerApiReply()
     }
     // 【心声】切换心声折叠面板显隐
@@ -2010,7 +2011,7 @@ createApp({
       activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
       chatOpen, activeContactId, drawerOpen, typing, chatInput, editingMsgId, editText, showThoughts, actionMsgId, showRecallModal, recalledText, showMaskPicker,
       activeContact, maskById, actionMsg, chatMessages, lastMsgOf, sessionFor, currentMeta, displayName, alphabet, contactGroups, scrollToGroup, memoOpen, memoContent,
-      multiSelect, selectedIds, transferOpen, transferAmount, transferType, giftOpen, gifts, replyCount, incReplyCount, decReplyCount,
+      multiSelect, selectedIds, transferOpen, transferAmount, transferType, giftOpen, gifts,
       profileOpen, maskManagerOpen, chatSettingsOpen, maskEditId, maskEditorOpen, maskForm, addContactOpen, newContactForm, confirmOpen, confirmText,
       charAvatarUrl, memberInfoOpen, memberInfoId, showDeleteSheet, memberInfo,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
