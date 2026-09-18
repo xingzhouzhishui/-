@@ -1375,10 +1375,10 @@ createApp({
       const blobUrl = URL.createObjectURL(file)
       let style = document.getElementById('custom-font-style')
       if(!style){ style = document.createElement('style'); style.id = 'custom-font-style'; document.head.appendChild(style) }
-      style.textContent = "@font-face { font-family: 'UserCustomFont'; src: url('" + blobUrl + "'); }"
-      document.documentElement.style.fontFamily = "'UserCustomFont', -apple-system, 'PingFang SC', sans-serif"
+      style.textContent = "@font-face { font-family: 'SystemUI'; src: url('" + blobUrl + "'); }"
+      document.documentElement.style.fontFamily = "'SystemUI', -apple-system, 'PingFang SC', sans-serif"
       data.font = 'custom'; data.fontUrl = blobUrl
-      showToast('字体已注入')
+      showToast('字体已导入并应用')
     }
     const onFontFile = importLocalFont
 
