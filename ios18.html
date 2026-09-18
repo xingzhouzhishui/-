@@ -365,7 +365,7 @@
               <div v-if="!data.chatContacts.length" style="padding:60px 20px;text-align:center;color:#8e8e93;font-size:14px">暂无联系人，点右上角「＋」添加 AI 小号</div>
               <div v-for="c in data.chatContacts" :key="c.id" class="row" style="padding:14px 16px" @click="openChat(c.id)">
                 <span style="width:48px;height:48px;border-radius:9px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:18px;flex-shrink:0" :style="{background:c.color}">{{ c.name[0] }}</span>
-                <span class="ri"><span class="t">{{ c.name }}</span><span class="s">{{ (c.messages.slice(-1)[0] || {}).text || '开始聊天吧' }}</span></span>
+                <span class="ri"><span class="t">{{ c.name }}</span><span class="s">{{ (lastMsgOf(c.id) || {}).text || '开始聊天吧' }}</span></span>
                 <span class="chev">›</span>
               </div>
             </div>
@@ -533,7 +533,7 @@
           <div class="af-body" style="padding:0;display:flex;flex-direction:column">
             <!-- 消息流 -->
             <div style="flex:1;overflow-y:auto;padding:14px 14px 8px;background:#ededed;-webkit-overflow-scrolling:touch">
-              <div v-for="m in (activeContact ? activeContact.messages : [])" :key="m.id" style="display:flex;margin-bottom:12px" :style="{justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start'}" @mousedown="msgPressStart(m.id)" @mouseup="msgPressEnd" @mouseleave="msgPressEnd" @touchstart="msgPressStart(m.id)" @touchend="msgPressEnd" @touchmove="msgPressEnd" @contextmenu.prevent="actionMsgId=m.id" @dblclick="m.sender==='user' && !m.recalled && startEdit(m.id)">
+              <div v-for="m in chatMessages" :key="m.id" style="display:flex;margin-bottom:12px" :style="{justifyContent: m.sender==='user' ? 'flex-end' : 'flex-start'}" @mousedown="msgPressStart(m.id)" @mouseup="msgPressEnd" @mouseleave="msgPressEnd" @touchstart="msgPressStart(m.id)" @touchend="msgPressEnd" @touchmove="msgPressEnd" @contextmenu.prevent="actionMsgId=m.id" @dblclick="m.sender==='user' && !m.recalled && startEdit(m.id)">
                 <!-- AI 头像 -->
                 <span v-if="m.sender==='ai'" style="width:38px;height:38px;border-radius:7px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:600;font-size:15px;margin-right:8px" :style="{background: activeContact ? activeContact.color : '#999'}">{{ activeContact ? activeContact.name[0] : '?' }}</span>
                 <div style="max-width:74%">
@@ -980,9 +980,10 @@ const DEFAULT_DATA = {
   ],
   momentsCover:'', stickerLibrary:[],
   chatContacts:[
-    { id:'c1', name:'林晚', color:'#d98866', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'内置', messages:[] },
-    { id:'c2', name:'苏晴', color:'#6a8fb5', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'内置', messages:[] }
+    { id:'c1', name:'林晚', color:'#d98866', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'内置' },
+    { id:'c2', name:'苏晴', color:'#6a8fb5', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'内置' }
   ],
+  chatSessions:{},
   userMasks:[ { id:'mask_default', name:'我', color:'#8e8e93', avatar:'', persona:'' } ],
   activeMaskId:'mask_default',
   userProfile:{ name:'我', wechatId:'wxid_demo', address:'', avatar:'' }
@@ -1049,7 +1050,21 @@ createApp({
     if(!Array.isArray(data.chatContacts)) data.chatContacts = DEFAULT_DATA.chatContacts
     if(!Array.isArray(data.userMasks)) data.userMasks = DEFAULT_DATA.userMasks
     if(!data.activeMaskId) data.activeMaskId = 'mask_default'
-    data.chatContacts.forEach(c => { if(!Array.isArray(c.messages)) c.messages = []; ['avatar','persona','firstMessage','personality','scenario','worldbookCatId','userPersona','source'].forEach(k => { if(c[k] === undefined) c[k] = '' }) })
+    if(!data.chatSessions || typeof data.chatSessions !== 'object' || Array.isArray(data.chatSessions)) data.chatSessions = {}
+    // 迁移：旧 chatContacts[i].messages 平铺 → chatSessions[altId][maskId]（平行时空）
+    data.chatContacts.forEach(c => {
+      ['avatar','persona','firstMessage','personality','scenario','worldbookCatId','userPersona','source'].forEach(k => { if(c[k] === undefined) c[k] = '' })
+      if(Array.isArray(c.messages) && c.messages.length){
+        if(!data.chatSessions[c.id]) data.chatSessions[c.id] = {}
+        let curMask = data.activeMaskId || 'mask_default'
+        c.messages.forEach(m => {
+          if(m.sender === 'user' && m.maskId) curMask = m.maskId
+          if(!Array.isArray(data.chatSessions[c.id][curMask])) data.chatSessions[c.id][curMask] = []
+          data.chatSessions[c.id][curMask].push(m)
+        })
+      }
+      delete c.messages
+    })
     data.userMasks.forEach(m => { if(m.avatar === undefined) m.avatar = ''; if(m.persona === undefined) m.persona = '' })
     if(!data.userProfile) data.userProfile = { name:'我', wechatId:'wxid_demo', address:'', avatar:'' }
 
@@ -1258,7 +1273,22 @@ createApp({
     // ============ 微信聊天室 ============
     const activeContact = computed(() => data.chatContacts.find(c => c.id === activeContactId.value) || null)
     const maskById = (id) => data.userMasks.find(m => m.id === id)
-    const actionMsg = computed(() => { const c = activeContact.value; if(!c || !actionMsgId.value) return null; return c.messages.find(x => x.id === actionMsgId.value) })
+    // 平行时空：按 (AI小号 altId, User面具 maskId) 定位消息时空
+    const sessionFor = (altId, maskId) => {
+      if(!altId) return null
+      if(!data.chatSessions) data.chatSessions = {}
+      if(!data.chatSessions[altId]) data.chatSessions[altId] = {}
+      if(!Array.isArray(data.chatSessions[altId][maskId])) data.chatSessions[altId][maskId] = []
+      return data.chatSessions[altId][maskId]
+    }
+    const currentSession = () => sessionFor(activeContactId.value, data.activeMaskId)
+    const chatMessages = computed(() => {
+      const alt = activeContactId.value, mask = data.activeMaskId
+      if(!alt || !data.chatSessions || !data.chatSessions[alt]) return []
+      return data.chatSessions[alt][mask] || []
+    })
+    const lastMsgOf = (altId) => { const s = (data.chatSessions && data.chatSessions[altId]) ? data.chatSessions[altId][data.activeMaskId] : null; return (s && s.length) ? s[s.length-1] : null }
+    const actionMsg = computed(() => { if(!actionMsgId.value) return null; return chatMessages.value.find(x => x.id === actionMsgId.value) })
     const aiReplyTexts = [
       { text:'嗯，我在听。', thought:'他今天的话似乎比平时多，也许有想对我说的事。' },
       { text:'然后呢？继续。', thought:'想听他说下去，又不想显得太急切。' },
@@ -1267,75 +1297,77 @@ createApp({
     ]
     const openChat = (id) => { activeContactId.value = id; chatOpen.value = true; drawerOpen.value = false }
     const triggerAiReply = () => {
-      const contact = activeContact.value; if(!contact) return
+      const alt = activeContactId.value, mask = data.activeMaskId
       typing.value = true
       setTimeout(() => {
         typing.value = false
         const r = aiReplyTexts[Math.floor(Math.random()*aiReplyTexts.length)]
-        contact.messages.push({ id:'msg'+Date.now(), sender:'ai', text:r.text, thought:r.thought, time:Date.now() })
+        const s = sessionFor(alt, mask)
+        if(s) s.push({ id:'msg'+Date.now(), sender:'ai', text:r.text, thought:r.thought, time:Date.now() })
       }, 2000)
     }
     const sendChat = () => {
-      const contact = activeContact.value; if(!contact) return
+      const s = currentSession(); if(!s) return
       const t = chatInput.value.trim(); if(!t) return
-      contact.messages.push({ id:'msg'+Date.now(), sender:'user', text:t, maskId: data.activeMaskId, time:Date.now() })
+      s.push({ id:'msg'+Date.now(), sender:'user', text:t, maskId: data.activeMaskId, time:Date.now() })
       chatInput.value = ''
       triggerAiReply()
     }
     // 新增联系人 / 面具（iOS 滑入页，无原生弹窗）
     const openAddContact = () => { newContactForm.name = ''; newContactForm.color = '#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'); addContactOpen.value = true }
-    const saveNewContact = () => { const n = newContactForm.name.trim(); if(!n){ showToast('请输入名称'); return } data.chatContacts.push({ id:'c'+Date.now(), name:n, color:newContactForm.color || '#8e8e93', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'手动创建', messages:[] }); addContactOpen.value = false; showToast('已添加') }
+    const saveNewContact = () => { const n = newContactForm.name.trim(); if(!n){ showToast('请输入名称'); return } data.chatContacts.push({ id:'c'+Date.now(), name:n, color:newContactForm.color || '#8e8e93', avatar:'', persona:'', firstMessage:'', personality:'', scenario:'', worldbookCatId:'', userPersona:'', source:'手动创建' }); addContactOpen.value = false; showToast('已添加') }
     const openAddMask = () => { maskEditId.value = null; maskForm.name = ''; maskForm.avatar = ''; maskForm.persona = ''; maskEditorOpen.value = true }
     const editMask = (id) => { const m = maskById(id); if(!m) return; maskEditId.value = id; maskForm.name = m.name; maskForm.avatar = m.avatar || ''; maskForm.persona = m.persona || ''; maskEditorOpen.value = true }
     const saveMask = () => { const n = maskForm.name.trim(); if(!n){ showToast('请输入面具名称'); return } if(maskEditId.value){ const m = maskById(maskEditId.value); if(m){ m.name = n; m.avatar = maskForm.avatar; m.persona = maskForm.persona } } else { const m = { id:'mask'+Date.now(), name:n, color:'#'+Math.floor(Math.random()*0xffffff).toString(16).padStart(6,'0'), avatar:maskForm.avatar, persona:maskForm.persona }; data.userMasks.push(m); data.activeMaskId = m.id } maskEditorOpen.value = false; showToast('面具已保存') }
     const onMaskAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { maskForm.avatar = r.result }; r.readAsDataURL(f); e.target.value = '' }
     const onUserAvatar = (e) => { const f = e.target.files[0]; if(!f) return; const r = new FileReader(); r.onload = () => { data.userProfile.avatar = r.result; showToast('头像已更新') }; r.readAsDataURL(f); e.target.value = '' }
-    // 【重回】删除最后一条 AI 消息并重新生成
+    // 【重回】删除当前时空线最后一条 AI 消息并重新生成
     const regenerate = () => {
-      const contact = activeContact.value; if(!contact) return
+      const s = currentSession(); if(!s) return
       drawerOpen.value = false
-      for(let i=contact.messages.length-1;i>=0;i--){ if(contact.messages[i].sender==='ai'){ contact.messages.splice(i,1); break } }
+      for(let i=s.length-1;i>=0;i--){ if(s[i].sender==='ai'){ s.splice(i,1); break } }
       triggerAiReply()
     }
     // 【心声】切换心声折叠面板显隐
     const toggleThoughts = () => { showThoughts.value = !showThoughts.value; drawerOpen.value = false; showToast(showThoughts.value ? '心声已展开' : '心声已收起') }
-    // 【修改】双击消息进入原地编辑
+    // 【修改】双击消息进入原地编辑（仅当前时空线）
     const startEdit = (id) => {
-      const contact = activeContact.value; if(!contact) return
-      const m = contact.messages.find(x => x.id === id); if(!m || m.sender !== 'user' || m.recalled) return
+      const s = currentSession(); if(!s) return
+      const m = s.find(x => x.id === id); if(!m || m.sender !== 'user' || m.recalled) return
       editingMsgId.value = id; editText.value = m.text; actionMsgId.value = null
     }
     const saveEdit = () => {
-      const contact = activeContact.value; if(!contact) return
-      const m = contact.messages.find(x => x.id === editingMsgId.value); if(!m) return
+      const s = currentSession(); if(!s) return
+      const m = s.find(x => x.id === editingMsgId.value); if(!m) return
       m.text = editText.value.trim()
-      const idx = contact.messages.indexOf(m)
-      contact.messages = contact.messages.slice(0, idx+1).concat(contact.messages.slice(idx+1).filter(x => x.sender !== 'ai'))
+      const idx = s.indexOf(m)
+      for(let i=s.length-1;i>idx;i--){ if(s[i].sender==='ai') s.splice(i,1) }
       editingMsgId.value = null
       triggerAiReply()
     }
-    // 【撤回】带备份
+    // 【撤回】带备份（仅当前时空线）
     const recallMessage = (id) => {
-      const contact = activeContact.value; if(!contact) return
-      const m = contact.messages.find(x => x.id === id); if(!m || m.sender !== 'user') return
+      const s = currentSession(); if(!s) return
+      const m = s.find(x => x.id === id); if(!m || m.sender !== 'user') return
       m.recalled = true; m.recalledText = m.text; m.text = ''
       actionMsgId.value = null
     }
     const viewRecalled = (id) => {
-      const contact = activeContact.value; if(!contact) return
-      const m = contact.messages.find(x => x.id === id); if(!m) return
+      const s = currentSession(); if(!s) return
+      const m = s.find(x => x.id === id); if(!m) return
       recalledText.value = m.recalledText || ''
       showRecallModal.value = true
     }
-    // 【删除记忆】物理抹除
+    // 【删除记忆】物理抹除（仅当前时空线）
     const eraseMessage = (id) => {
-      const contact = activeContact.value; if(!contact) return
-      contact.messages = contact.messages.filter(x => x.id !== id)
+      const s = currentSession(); if(!s) return
+      const i = s.findIndex(x => x.id === id)
+      if(i >= 0) s.splice(i, 1)
       actionMsgId.value = null
     }
-    const eraseAll = () => { drawerOpen.value = false; confirmText.value = '清除全部对话记忆？AI 将彻底遗忘这段对话'; confirmOpen.value = true; confirmFn = () => { const c = activeContact.value; if(c) c.messages = [] } }
+    const eraseAll = () => { drawerOpen.value = false; confirmText.value = '清除当前时空线的全部对话记忆？'; confirmOpen.value = true; confirmFn = () => { const alt = activeContactId.value, mask = data.activeMaskId; if(data.chatSessions && data.chatSessions[alt]) data.chatSessions[alt][mask] = [] } }
     const drawerItems = computed(() => {
-      const c = activeContact.value
+      const s = currentSession()
       return [
         { i:'照', n:'照片', f:()=>showToast('照片（占位）') },
         { i:'拍', n:'拍摄', f:()=>showToast('拍摄（占位）') },
@@ -1343,7 +1375,7 @@ createApp({
         { i:'视', n:'视频通话', f:()=>showToast('视频通话（占位）') },
         { i:'重', n:'重回', f:regenerate },
         { i:'心', n:'心声', f:toggleThoughts },
-        { i:'改', n:'修改', f:()=>{ const lu = c ? [...c.messages].reverse().find(x=>x.sender==='user'&&!x.recalled) : null; if(lu) startEdit(lu.id); else showToast('双击用户消息可修改') } },
+        { i:'改', n:'修改', f:()=>{ const lu = s ? [...s].reverse().find(x=>x.sender==='user'&&!x.recalled) : null; if(lu) startEdit(lu.id); else showToast('双击用户消息可修改') } },
         { i:'删', n:'删除记忆', f:eraseAll }
       ]
     })
@@ -1415,32 +1447,34 @@ createApp({
       hits.sort((a,b) => a.depth - b.depth)
       return hits.map(h => h.content).join('\n')
     }
-    // 核心：上下文装配引擎（未来发 API 时调用）
+    // 核心：上下文装配引擎（平行时空适配，未来发 API 时调用）
     const assembleApiPrompt = (sessionId) => {
-      const contact = (sessionId ? data.chatContacts.find(c => c.id === sessionId) : activeContact.value) || activeContact.value
+      const altId = sessionId || activeContactId.value
+      const contact = data.chatContacts.find(c => c.id === altId)
       if(!contact) return ''
+      const mask = maskById(data.activeMaskId)
+      const s = sessionFor(altId, data.activeMaskId) || []
       const parts = []
       // 1. 系统全局规则
       const sys = []
       if(data.styleFilter) sys.push('文风过滤：' + data.styleFilter)
       sys.push('当前时间：' + new Date().toLocaleString('zh-CN'))
       parts.push('【系统全局规则】\n' + sys.join('\n'))
-      // 2. AI 核心人设
+      // 2. AI 全局主设定（跨时空互通）
       if(contact.persona) parts.push('【AI 核心人设 · ' + contact.name + '】\n' + contact.persona + (contact.personality ? '\n性格：' + contact.personality : ''))
-      // 3. User 面具 + 专属设定
-      const mask = maskById(data.activeMaskId)
+      // 3. 当前 User 面具人设 + 专属设定
       if(mask && mask.persona) parts.push('【User 面具 · ' + mask.name + '】\n' + mask.persona)
       if(contact.userPersona) parts.push('【User 专属设定】\n' + contact.userPersona)
-      // 4. 世界书动态挂载
-      const recent = contact.messages.slice(-6).map(m => m.text).join('\n')
+      // 4. 世界书动态挂载（仅当前时空线）
+      const recent = s.slice(-6).map(m => m.text).join('\n')
       const wb = assembleWorldbook(contact, recent)
       if(wb) parts.push('【世界书挂载】\n' + wb)
-      // 5. 上下文组装
-      const history = contact.messages.slice(-10).map(m => {
-        const who = m.sender === 'user' ? ((maskById(m.maskId)||{}).name || 'User') : contact.name
+      // 5. 上下文组装（仅当前时空线历史）
+      const history = s.slice(-10).map(m => {
+        const who = m.sender === 'user' ? ((maskById(m.maskId)||{}).name || (mask ? mask.name : 'User')) : contact.name
         return who + ': ' + (m.recalled ? '（已撤回）' : m.text)
       }).join('\n')
-      parts.push('【对话历史】\n' + history)
+      parts.push('【对话历史 · 当前时空】\n' + history)
       return parts.join('\n\n')
     }
     const copyPrompt = () => { const p = assembleApiPrompt(); if(p){ try{ navigator.clipboard.writeText(p); showToast('Prompt 已复制') }catch(e){ showToast('复制失败') } } else { showToast('暂无内容') } }
@@ -1485,7 +1519,7 @@ createApp({
       wbSearch, showCatForm, showImportMenu, catFormData, filteredCategories,
       activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
       chatOpen, activeContactId, drawerOpen, typing, chatInput, editingMsgId, editText, showThoughts, actionMsgId, showRecallModal, recalledText, showMaskPicker,
-      activeContact, maskById, actionMsg,
+      activeContact, maskById, actionMsg, chatMessages, lastMsgOf, sessionFor,
       profileOpen, maskManagerOpen, chatSettingsOpen, maskEditId, maskEditorOpen, maskForm, addContactOpen, newContactForm, confirmOpen, confirmText,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
       statusColor, homeIndicatorColor, memoryText, memoryPercent, activePresetName, settingsTitle,
