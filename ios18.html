@@ -626,6 +626,11 @@
             <div v-else style="display:flex;align-items:center;gap:8px;padding:9px 10px;background:#f7f7f7;border-top:1px solid #e5e5ea;flex-shrink:0">
               <button @click="showToast('语音（占位）')" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;cursor:pointer">♫</button>
               <input v-model="chatInput" @keydown.enter="sendChat" :placeholder="currentMeta && currentMeta.blacklisted ? '你已被对方拉黑，无法发送消息' : '发送消息'" :disabled="currentMeta && currentMeta.blacklisted" style="flex:1;border:none;outline:none;background:#fff;border-radius:18px;padding:8px 14px;font-size:14px;color:#1c1c1e">
+              <div style="display:flex;align-items:center;background:#fff;border:1px solid #e5e5ea;border-radius:12px;overflow:hidden;flex-shrink:0" title="回复条数">
+                <button @click="decReplyCount" style="width:24px;height:28px;border:none;background:none;color:#1c1c1e;font-size:14px;cursor:pointer">−</button>
+                <span style="font-size:12px;color:#1c1c1e;min-width:20px;text-align:center">{{ replyCount }}条</span>
+                <button @click="incReplyCount" style="width:24px;height:28px;border:none;background:none;color:#1c1c1e;font-size:14px;cursor:pointer">＋</button>
+              </div>
               <button @click="triggerApiReply" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;font-size:20px;cursor:pointer" title="生成回复">✨</button>
               <button @click="drawerOpen=!drawerOpen" style="width:34px;height:34px;border:none;background:none;color:#1c1c1e;font-size:22px;cursor:pointer">＋</button>
               <button @click="sendChat" style="padding:6px 14px;border:none;border-radius:6px;background:#07c160;color:#fff;font-size:14px;cursor:pointer">发送</button>
@@ -1285,6 +1290,9 @@ createApp({
     const transferOpen = ref(false), transferAmount = ref(''), transferType = ref('transfer')
     const giftOpen = ref(false)
     const gifts = ['一杯温热的咖啡', '一张黑胶唱片', '一副定制袖扣', '一本书', '一束花']
+    const replyCount = ref(1)
+    const incReplyCount = () => { replyCount.value = Math.min(10, replyCount.value + 1) }
+    const decReplyCount = () => { replyCount.value = Math.max(1, replyCount.value - 1) }
 
     // 第三阶段：个人信息页 / 面具管理器 / 聊天信息页
     const profileOpen = ref(false), maskManagerOpen = ref(false), chatSettingsOpen = ref(false)
@@ -1710,26 +1718,29 @@ createApp({
       const s = sessionFor(alt, mask)
       const prompt = assembleApiPrompt(alt)
       const lastUser = s ? s.slice().reverse().find(m => m.sender === 'user' && !m.recalled) : null
-      const messages = [{ role:'system', content: prompt }, { role:'user', content: lastUser ? lastUser.text : '请继续回复' }]
+      const n = Math.max(1, Math.min(10, replyCount.value || 1))
       typing.value = true
-      fetch(apiEndpoint(cfg.url, '/v1/chat/completions'), {
-        method:'POST',
-        headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+cfg.key },
-        body: JSON.stringify({ model:cfg.model, temperature:cfg.temperature, messages })
-      }).then(async r => {
-        if(!r.ok){ const t = await r.text().catch(()=>''); throw new Error('HTTP '+r.status+(t ? ' · '+t.slice(0,200) : '')) }
-        return r.json()
-      }).then(j => {
-        typing.value = false
-        const text = parseAiText(j)
-        const s2 = sessionFor(alt, mask)
-        if(s2 && text) s2.push({ id:'msg'+Date.now(), sender:'ai', text, thought:'', time:Date.now() })
-        else if(s2) showToast('接口返回成功，但未解析到文本')
-      }).catch(err => {
-        typing.value = false
-        console.error('API 请求失败', err)
-        showToast('连接失败：' + err.message)
-      })
+      let pending = n
+      const done = () => { pending--; if(pending <= 0) typing.value = false }
+      for(let i = 0; i < n; i++){
+        const variation = n > 1 ? ('（这是本次生成的第 ' + (i+1) + ' / ' + n + ' 条候选回复，请给出不同的内容与措辞）') : ''
+        const messages = [{ role:'system', content: prompt }, { role:'user', content: (lastUser ? lastUser.text : '请继续回复') + variation }]
+        fetch(apiEndpoint(cfg.url, '/v1/chat/completions'), {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json', 'Authorization':'Bearer '+cfg.key },
+          body: JSON.stringify({ model:cfg.model, temperature:cfg.temperature, messages })
+        }).then(async r => {
+          if(!r.ok){ const t = await r.text().catch(()=>''); throw new Error('HTTP '+r.status+(t ? ' · '+t.slice(0,200) : '')) }
+          return r.json()
+        }).then(j => {
+          const text = parseAiText(j)
+          const s2 = sessionFor(alt, mask)
+          if(s2 && text) s2.push({ id:'msg'+Date.now(), sender:'ai', text, thought:'', time:Date.now() })
+        }).catch(err => {
+          console.error('API 请求失败', err)
+          showToast('连接失败：' + err.message)
+        }).finally(done)
+      }
     }
     const sendChat = () => {
       const meta = currentMeta.value
@@ -1998,7 +2009,7 @@ createApp({
       activeTab, momentsOpen, stickersOpen, stickerUrlInput, showCommentBox, commentTargetId, commentText, momentActionId, wechatTitle,
       chatOpen, activeContactId, drawerOpen, typing, chatInput, editingMsgId, editText, showThoughts, actionMsgId, showRecallModal, recalledText, showMaskPicker,
       activeContact, maskById, actionMsg, chatMessages, lastMsgOf, sessionFor, currentMeta, displayName, alphabet, contactGroups, scrollToGroup, memoOpen, memoContent,
-      multiSelect, selectedIds, transferOpen, transferAmount, transferType, giftOpen, gifts,
+      multiSelect, selectedIds, transferOpen, transferAmount, transferType, giftOpen, gifts, replyCount, incReplyCount, decReplyCount,
       profileOpen, maskManagerOpen, chatSettingsOpen, maskEditId, maskEditorOpen, maskForm, addContactOpen, newContactForm, confirmOpen, confirmText,
       charAvatarUrl, memberInfoOpen, memberInfoId, showDeleteSheet, memberInfo,
       gridApps, dockApps, allApps, iconStyle, iconClass, iconOverride, wallpaperStyle, wallpaperName, fontFamily, fontName,
